@@ -1,7 +1,12 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/client.js',
+  mode: 'development',
+  entry: {
+    app: [
+      './src/client.js'
+    ]
+  },
   output: {
     path: path.join(__dirname, 'public'),
     filename: 'bundle.dev.js'
@@ -18,5 +23,6 @@ module.exports = {
   devtool: 'cheap-module-eval-source-map',
   devServer: {
     contentBase: path.join(__dirname, 'public')
-  }
+  },
+  plugins: []
 };
