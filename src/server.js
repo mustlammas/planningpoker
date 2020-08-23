@@ -11,6 +11,10 @@ const port = 3000;
 const devServerEnabled = true;
 const clients = {};
 const msg = require("./messages.js");
+const { v4: uuidv4 } = require('uuid');
+const state = {
+  revealVotes: false
+};
 
 if (devServerEnabled) {
     //reload=true:Enable auto reloading when changing JS files or content
@@ -52,6 +56,26 @@ const sendUserList = (clients) => {
   }));
 };
 
+const sendRevealVotes = () => {
+  broadcast(JSON.stringify({
+    type: msg.MSG_REVEAL_VOTES,
+    message: votesWithUsernames()
+  }));
+};
+
+const votesWithUsernames = () => {
+  return Object.values(clients).map(c => {
+    return {
+      username: c.username,
+      vote: c.vote
+    };
+  });
+};
+
+const votes = () => {
+  return Object.values(clients).map(c => c.vote);
+};
+
 const processMsg = (message, socket) => {
   let m = JSON.parse(message);
   if (m.type === msg.MSG_CLIENT_CONNECT) {
@@ -64,10 +88,20 @@ const processMsg = (message, socket) => {
     sendUserList(clients);
   } else if (m.type === msg.MSG_CHAT) {
     broadcast(message);
+  } else if (m.type === msg.MSG_VOTE) {
+    clients[socket.id] = {
+      ...clients[socket.id],
+      vote: m.message
+    };
+  } else if (m.type === msg.MSG_REVEAL_VOTES) {
+    console.log("Revealing votes");
+    state.revealVotes = true;
+    sendRevealVotes();
   }
 };
 
 wss.on('connection', function connection(socket, req) {
+  socket.id = uuidv4();
   socket.on('message', function incoming(message) {
     processMsg(message, socket);
   });
