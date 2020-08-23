@@ -76,6 +76,12 @@ const votes = () => {
   return Object.values(clients).map(c => c.vote);
 };
 
+const sendResetVote = () => {
+  broadcast(JSON.stringify({
+    type: msg.MSG_RESET_VOTE
+  }));
+};
+
 const processMsg = (message, socket) => {
   let m = JSON.parse(message);
   if (m.type === msg.MSG_CLIENT_CONNECT) {
@@ -93,10 +99,13 @@ const processMsg = (message, socket) => {
       ...clients[socket.id],
       vote: m.message
     };
+    if (state.revealVotes) sendRevealVotes();
   } else if (m.type === msg.MSG_REVEAL_VOTES) {
-    console.log("Revealing votes");
     state.revealVotes = true;
     sendRevealVotes();
+  } else if (m.type === msg.MSG_RESET_VOTE) {
+    state.revealVotes = false;
+    sendResetVote();
   }
 };
 

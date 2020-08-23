@@ -3,7 +3,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {w3cwebsocket as W3CWebSocket} from 'websocket';
-import { Box, Button, Divider, Grid, List, ListItem, TextField } from '@material-ui/core';
+import { Box, Button, Chip, Divider, Grid, List, ListItem, TextField } from '@material-ui/core';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -65,12 +65,17 @@ const votesState = atom({
   default: []
 });
 
+const selectedPointsState = atom({
+  key: 'selectedPoints'
+});
+
 const PokerPlanning = () => {
   const [client, setClient] = useRecoilState(clientState);
   const [clients, setClients] = useRecoilState(clientsState);
   const [chat, setChat] = useRecoilState(chatState);
   const [reveal, setReveal] = useRecoilState(revealState);
   const [votes, setVotes] = useRecoilState(votesState);
+  const [selectedPoints, setSelectedPoints] = useRecoilState(selectedPointsState);
 
   useEffect(() => {
     setClient(new W3CWebSocket('ws://localhost:3000/chat', 'echo-protocol'));
@@ -84,6 +89,10 @@ const PokerPlanning = () => {
     } else if (msg.type === Msg.MSG_REVEAL_VOTES) {
       setReveal(true);
       setVotes(msg.message);
+    } else if (msg.type === Msg.MSG_RESET_VOTE) {
+      setReveal(false);
+      setVotes([]);
+      setSelectedPoints(null);
     }
   };
 
@@ -113,7 +122,7 @@ const Poker = () => {
   const [client, setClient] = useRecoilState(clientState);
   const [user, setUser] = useRecoilState(userState);
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
-  const [selectedPoints, setSelectedPoints] = useState();
+  const [selectedPoints, setSelectedPoints] = useRecoilState(selectedPointsState);
   const [reveal, setReveal] = useRecoilState(revealState);
   const [votes, setVotes] = useRecoilState(votesState);
 
@@ -144,34 +153,44 @@ const Poker = () => {
     }
   };
 
+  const resetVotes = () => {
+    if (client.readyState === client.OPEN) {
+      client.send(JSON.stringify({
+        type: Msg.MSG_RESET_VOTE
+      }));
+    }
+  };
+
   return submitted ? <Box>
     <Box>
       {points.map(p => {
         let color = selectedPoints === p ? "secondary" : "primary";
         return <Box key={p} p={1} display="inline">
-          <Button color={color} variant="contained" onClick={() => {
+          <Button color={color} variant="contained" size="large" onClick={() => {
             sendVote(p);
             setSelectedPoints(p);
           }}>{p}</Button>
         </Box>;
       })}
     </Box>
-    <Box p={2}>
+    <Box p={2} display="flex">
+      <Box flexGrow={1}>
+        <Button variant="contained" onClick={() => resetVotes()}>Reset</Button>
+      </Box>
       <Button variant="contained" onClick={() => revealVotes()}>Reveal votes</Button>
     </Box>
-
-    <Box p={2}>
+    <Box p={2} width={1/3} mx="auto">
       { votes && votes.length > 0 &&
-        <TableContainer component={Paper}>
-        <Table aria-label="simple table">
-        <TableBody>
-          {votes.map(v => {
-            return <TableRow key={v.username}>
-              <TableCell component="th" scope="row">{v.username}</TableCell>
-              <TableCell align="right">{v.vote}</TableCell>
-            </TableRow>;
-          })}
-          </TableBody>
+        <TableContainer>
+          <Table size="small" aria-label="a dense table">
+            <TableBody>
+              {votes.map(v => {
+                return <TableRow key={v.username}>
+                  <TableCell component="th" scope="row">{v.username}</TableCell>
+                  <TableCell align="right"><Chip label={v.vote}/></TableCell>
+                </TableRow>;
+              })}
+            </TableBody>
           </Table>
         </TableContainer>
       }
