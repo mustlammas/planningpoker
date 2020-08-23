@@ -11,6 +11,7 @@ import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
+import CheckIcon from '@material-ui/icons/Check';
 
 import * as Msg from './messages.js' ;
 
@@ -185,9 +186,10 @@ const Poker = () => {
         <Table size="small" aria-label="a dense table">
           <TableBody>
             {votes.map(v => {
+              let checkIcon = v.vote ? <CheckIcon/> : null;
               return <TableRow key={v.username}>
                 <TableCell component="th" scope="row">{v.username}</TableCell>
-                <TableCell align="right">{reveal ? <Chip label={v.vote}/> : null}</TableCell>
+                <TableCell align="right">{reveal ? <Chip label={v.vote}/> : checkIcon}</TableCell>
               </TableRow>;
             })}
           </TableBody>
