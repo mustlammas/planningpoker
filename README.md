@@ -2,6 +2,7 @@
 App for playing Scrum planning poker
 
 # TODO
+- Display participants.
 - Display poker values (1, 2, 3, 5, 8, 13, 21, split it!, ?) and allow users to
 select a single one at a time.
 - Add a "Reveal" button to show the votes from everyone.

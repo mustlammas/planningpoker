@@ -69,7 +69,7 @@ const Chat = () => {
       <input id="send" type="button" onClick={(e) => sendMessage(message)} value="Send"/>
     </div>
     <div>
-      <textarea id="chat" value={text} readOnly={true} style={{height: "200px", width: "300px"}}/>
+      <textarea id="chat" class="chat" value={text} readOnly={true} style={{height: "200px", width: "300px"}}/>
     </div>
   </div> : null;
 };
