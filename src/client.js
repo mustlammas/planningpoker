@@ -84,14 +84,12 @@ const PokerPlanning = () => {
   const processMsg = (msg) => {
     if (msg.type === Msg.MSG_CHAT) {
       setChat(`${chat}${msg.user}: ${msg.message}\n`);
-    } else if (msg.type === Msg.MSG_CLIENT_LIST) {
-      setClients(msg.message);
-    } else if (msg.type === Msg.MSG_REVEAL_VOTES) {
-      setReveal(true);
+    } else if (msg.type === Msg.MSG_UPDATE_USERS) {
       setVotes(msg.message);
+      console.log("Reveal?: ", msg.reveal);
+      setReveal(msg.reveal);
     } else if (msg.type === Msg.MSG_RESET_VOTE) {
       setReveal(false);
-      setVotes([]);
       setSelectedPoints(null);
     }
   };
@@ -113,7 +111,7 @@ const PokerPlanning = () => {
     alignItems="center"
     justify="center"
     style={{ minHeight: '100vh' }}>
-    <User/>
+    <Participants/>
     <Poker/>
   </Grid>
 };
@@ -177,23 +175,24 @@ const Poker = () => {
       <Box flexGrow={1}>
         <Button variant="contained" onClick={() => resetVotes()}>Reset</Button>
       </Box>
-      <Button variant="contained" onClick={() => revealVotes()}>Reveal votes</Button>
+      {reveal ?
+        <Button variant="contained" onClick={() => hideVotes()}>Hide votes</Button> :
+        <Button variant="contained" onClick={() => revealVotes()}>Reveal votes</Button>
+      }
     </Box>
     <Box p={2} width={1/3} mx="auto">
-      { votes && votes.length > 0 &&
-        <TableContainer>
-          <Table size="small" aria-label="a dense table">
-            <TableBody>
-              {votes.map(v => {
-                return <TableRow key={v.username}>
-                  <TableCell component="th" scope="row">{v.username}</TableCell>
-                  <TableCell align="right"><Chip label={v.vote}/></TableCell>
-                </TableRow>;
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      }
+      <TableContainer>
+        <Table size="small" aria-label="a dense table">
+          <TableBody>
+            {votes.map(v => {
+              return <TableRow key={v.username}>
+                <TableCell component="th" scope="row">{v.username}</TableCell>
+                <TableCell align="right">{reveal ? <Chip label={v.vote}/> : null}</TableCell>
+              </TableRow>;
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   </Box> : null;
 };
@@ -229,7 +228,7 @@ const Chat = () => {
   </div> : null;
 };
 
-const User = () => {
+const Participants = () => {
   const [client, setClient] = useRecoilState(clientState);
   const [user, setUser] = useRecoilState(userState);
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);

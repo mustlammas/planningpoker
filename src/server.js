@@ -47,19 +47,12 @@ const broadcast = (message) => {
   });
 };
 
-const sendUserList = (clients) => {
-  let usernames = Object.values(clients).map(c => c.username);
-  console.log("Sending user list: ", usernames);
+const sendUserList = (clear) => {
+  console.log("state.revealVotes: ", state.revealVotes);
   broadcast(JSON.stringify({
-    type: msg.MSG_CLIENT_LIST,
-    message: usernames
-  }));
-};
-
-const sendRevealVotes = () => {
-  broadcast(JSON.stringify({
-    type: msg.MSG_REVEAL_VOTES,
-    message: votesWithUsernames()
+    type: msg.MSG_UPDATE_USERS,
+    message: votesWithUsernames(),
+    reveal: state.revealVotes
   }));
 };
 
@@ -91,7 +84,7 @@ const processMsg = (message, socket) => {
       socket: socket,
       username: username
     };
-    sendUserList(clients);
+    sendUserList();
   } else if (m.type === msg.MSG_CHAT) {
     broadcast(message);
   } else if (m.type === msg.MSG_VOTE) {
@@ -99,13 +92,20 @@ const processMsg = (message, socket) => {
       ...clients[socket.id],
       vote: m.message
     };
-    if (state.revealVotes) sendRevealVotes();
+    sendUserList();
   } else if (m.type === msg.MSG_REVEAL_VOTES) {
     state.revealVotes = true;
-    sendRevealVotes();
+    sendUserList();
+  } else if (m.type === msg.MSG_HIDE_VOTES) {
+    state.revealVotes = false;
+    sendUserList(true);
   } else if (m.type === msg.MSG_RESET_VOTE) {
     state.revealVotes = false;
+    Object.values(clients).forEach(c => {
+      delete c.vote;
+    });
     sendResetVote();
+    sendUserList();
   }
 };
 
