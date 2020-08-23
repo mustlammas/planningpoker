@@ -9,7 +9,8 @@ const WebSocket = require('ws');
 const app = express();
 const port = 3000;
 const devServerEnabled = true;
-const clients = [];
+const clients = {};
+const msg = require("./messages.js");
 
 if (devServerEnabled) {
     //reload=true:Enable auto reloading when changing JS files or content
@@ -37,21 +38,42 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server: server, path: '/chat' });
 
 const broadcast = (message) => {
-  clients.forEach((c) => {
-    c.send(message);
+  Object.values(clients).forEach(c => {
+    c.socket.send(message);
   });
 };
 
-wss.on('connection', function connection(ws, req) {
-  clients.push(ws);
-  //clients[req.connection.remoteAddress] = ws;
-  ws.on('message', function incoming(message) {
-    console.log("Message: ", message);
+const sendUserList = (clients) => {
+  let usernames = Object.values(clients).map(c => c.username);
+  console.log("Sending user list: ", usernames);
+  broadcast(JSON.stringify({
+    type: msg.MSG_CLIENT_LIST,
+    message: usernames
+  }));
+};
+
+const processMsg = (message, socket) => {
+  let m = JSON.parse(message);
+  if (m.type === msg.MSG_CLIENT_CONNECT) {
+    let username = m.message;
+    console.log(`Client connected: ${username}`);
+    clients[socket.id] = {
+      socket: socket,
+      username: username
+    };
+    sendUserList(clients);
+  } else if (m.type === msg.MSG_CHAT) {
     broadcast(message);
+  }
+};
+
+wss.on('connection', function connection(socket, req) {
+  socket.on('message', function incoming(message) {
+    processMsg(message, socket);
   });
-  ws.on('close', function(reasonCode, description) {
+  socket.on('close', function(reasonCode, description) {
     console.log('Client ' + connection.remoteAddress + ' disconnected.');
-    // TODO: remove the client
+    delete clients[socket.id];
   });
 });
 

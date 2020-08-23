@@ -2,3 +2,11 @@
   margin-top: 20px;
   padding: 10px;
 }
+
+.users {
+  padding: 4px;
+}
+
+.user-me {
+  font-weight: bold;
+}
