@@ -1,5 +1,7 @@
 'use strict';
 
+import './style.css';
+
 import React, {useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {w3cwebsocket as W3CWebSocket} from 'websocket';

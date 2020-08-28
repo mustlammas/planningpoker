@@ -1,16 +1,18 @@
 const path = require('path');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
-  mode: 'development',
+  mode: 'production',
   entry: {
     app: [
       './src/client.js'
     ]
   },
   output: {
-    path: path.join(__dirname, 'public'),
-    filename: 'app.dev.js'
+    path: path.join(__dirname, 'dist'),
+    filename: '[name].[contenthash].js'
   },
   module: {
     rules: [
@@ -21,18 +23,20 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader']
+        use: [MiniCssExtractPlugin.loader, 'css-loader'],
       }
     ]
   },
-  devtool: 'cheap-module-eval-source-map',
-  devServer: {
-    contentBase: path.join(__dirname, 'public')
-  },
+  devtool: 'source-map',
   plugins: [
+    new CleanWebpackPlugin(),
     new HtmlWebpackPlugin({
       filename: 'index.html',
+      inject: true,
       template: path.resolve(__dirname, 'public', 'index.html')
+    }),
+    new MiniCssExtractPlugin({
+      filename: '[name].[contenthash].css',
     })
   ]
 };
