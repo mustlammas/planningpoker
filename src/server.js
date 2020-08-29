@@ -3,7 +3,7 @@ const express = require('express');
 const webpack = require('webpack');
 const webpackDevMiddleware = require('webpack-dev-middleware');
 const webpackHotMiddleware = require('webpack-hot-middleware');
-const config = require('../webpack.config.js');
+const config = require('../webpack.dev.config.js');
 const WebSocket = require('ws');
 
 const app = express();
@@ -17,6 +17,7 @@ const state = {
 };
 
 if (devServerEnabled) {
+    console.log("Dev server enabled. Configuring development plugins.");
     //reload=true:Enable auto reloading when changing JS files or content
     //timeout=1000:Time from disconnecting from server to reconnecting
     config.entry.app.unshift('webpack-hot-middleware/client?reload=true&timeout=1000');
