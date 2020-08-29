@@ -94,12 +94,6 @@ const processMsg = (message, socket) => {
       vote: m.message
     };
     sendUserList();
-  } else if (m.type === msg.MSG_REVEAL_VOTES) {
-    state.revealVotes = true;
-    sendUserList();
-  } else if (m.type === msg.MSG_HIDE_VOTES) {
-    state.revealVotes = false;
-    sendUserList(true);
   } else if (m.type === msg.MSG_RESET_VOTE) {
     state.revealVotes = false;
     Object.values(clients).forEach(c => {

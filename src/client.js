@@ -58,11 +58,6 @@ const clientsState = atom({
   default: []
 });
 
-const revealState = atom({
-  key: 'reveal',
-  default: false
-});
-
 const votesState = atom({
   key: 'votesState',
   default: []
@@ -76,7 +71,6 @@ const PokerPlanning = () => {
   const [client, setClient] = useRecoilState(clientState);
   const [clients, setClients] = useRecoilState(clientsState);
   const [chat, setChat] = useRecoilState(chatState);
-  const [reveal, setReveal] = useRecoilState(revealState);
   const [votes, setVotes] = useRecoilState(votesState);
   const [selectedPoints, setSelectedPoints] = useRecoilState(selectedPointsState);
 
@@ -89,10 +83,7 @@ const PokerPlanning = () => {
       setChat(`${chat}${msg.user}: ${msg.message}\n`);
     } else if (msg.type === Msg.MSG_UPDATE_USERS) {
       setVotes(msg.message);
-      console.log("Reveal?: ", msg.reveal);
-      setReveal(msg.reveal);
     } else if (msg.type === Msg.MSG_RESET_VOTE) {
-      setReveal(false);
       setSelectedPoints(null);
     }
   };
@@ -116,40 +107,25 @@ const PokerPlanning = () => {
     style={{ minHeight: '100vh' }}>
     <Participants/>
     <Poker/>
+    <Result/>
   </Grid>
 };
+
+const points = ["1", "2", "3", "5", "8", "13", "21", "split it!", "?"];
+const numericPoints = [1, 2, 3, 5, 8, 13, 21];
 
 const Poker = () => {
   const [client, setClient] = useRecoilState(clientState);
   const [user, setUser] = useRecoilState(userState);
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
   const [selectedPoints, setSelectedPoints] = useRecoilState(selectedPointsState);
-  const [reveal, setReveal] = useRecoilState(revealState);
   const [votes, setVotes] = useRecoilState(votesState);
-
-  const points = ["1", "2", "3", "5", "8", "13", "21", "split it!", "?"];
 
   const sendVote = (vote) => {
     if (client.readyState === client.OPEN) {
       client.send(JSON.stringify({
         type: Msg.MSG_VOTE,
         message: vote
-      }));
-    }
-  };
-
-  const revealVotes = () => {
-    if (client.readyState === client.OPEN) {
-      client.send(JSON.stringify({
-        type: Msg.MSG_REVEAL_VOTES
-      }));
-    }
-  };
-
-  const hideVotes = () => {
-    if (client.readyState === client.OPEN) {
-      client.send(JSON.stringify({
-        type: Msg.MSG_HIDE_VOTES
       }));
     }
   };
@@ -161,6 +137,38 @@ const Poker = () => {
       }));
     }
   };
+
+  const reveal = votes.filter(v => !v.hasOwnProperty('vote')).length === 0;
+
+  const everyoneHasVoted = votes.filter(v => !v.hasOwnProperty('vote')).length === 0;
+
+  const usersWithDiffingVotes = () => {
+    if (everyoneHasVoted) {
+      const numericVotes = votes.map(v => parseInt(v.vote)).filter(v => !isNaN(v)).sort();
+      const minVote = Math.min(...numericVotes);
+      const maxVote = Math.max(...numericVotes);
+      const minVoteIndex = numericPoints.indexOf(minVote);
+      const maxVoteIndex = numericPoints.indexOf(maxVote);
+      const indexDiff = maxVoteIndex - minVoteIndex;
+
+      if (indexDiff < 2) {
+        return [];
+      }
+
+      return votes.filter(v => {
+        if (!isNaN(v.vote)) {
+          const nr = parseInt(v.vote);
+          return nr === minVote || nr === maxVote
+        } else {
+          return false;
+        }
+      }).map(v => v.username);
+    } else {
+      return [];
+    }
+  };
+
+  const diffingUsers = usersWithDiffingVotes();
 
   return submitted ? <Box>
     <Box>
@@ -178,10 +186,6 @@ const Poker = () => {
       <Box flexGrow={1}>
         <Button variant="contained" onClick={() => resetVotes()}>Reset</Button>
       </Box>
-      {reveal ?
-        <Button variant="contained" onClick={() => hideVotes()}>Hide votes</Button> :
-        <Button variant="contained" onClick={() => revealVotes()}>Reveal votes</Button>
-      }
     </Box>
     <Box p={2} width={1/3} mx="auto">
       <TableContainer>
@@ -189,8 +193,10 @@ const Poker = () => {
           <TableBody>
             {votes.map(v => {
               let checkIcon = v.vote ? <CheckIcon/> : null;
-              return <TableRow key={v.username}>
-                <TableCell component="th" scope="row">{v.username}</TableCell>
+              let style = diffingUsers.includes(v.username) ? {backgroundColor: "#ff7961"} : {};
+              let nameStyle = user === v.username ? {fontWeight: "bold"} : {};
+              return <TableRow key={v.username} style={style}>
+                <TableCell component="th" scope="row" style={nameStyle}>{v.username}</TableCell>
                 <TableCell align="right">{reveal ? <Chip label={v.vote}/> : checkIcon}</TableCell>
               </TableRow>;
             })}
@@ -230,6 +236,31 @@ const Chat = () => {
       <textarea id="chat" className="chat" value={chat} readOnly={true} style={{height: "200px", width: "300px"}}/>
     </div>
   </div> : null;
+};
+
+const Result = () => {
+  const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
+  const [votes] = useRecoilState(votesState);
+  const everyoneHasVoted = votes.filter(v => !v.hasOwnProperty('vote')).length === 0;
+
+  if (!submitted) return null;
+
+  if (everyoneHasVoted) {
+    const numericVotes = votes.map(v => parseInt(v.vote)).filter(v => !isNaN(v)).sort();
+    const minVote = Math.min(...numericVotes);
+    const maxVote = Math.max(...numericVotes);
+    const minVoteIndex = numericPoints.indexOf(minVote);
+    const maxVoteIndex = numericPoints.indexOf(maxVote);
+    const indexDiff = maxVoteIndex - minVoteIndex;
+
+    if (indexDiff > 1) {
+      return <h1>Conflicting votes!</h1>;
+    } else {
+      return <h1>{maxVote}</h1>;
+    }
+  } else {
+    return <h1>Waiting for everyone to vote...</h1>;
+  }
 };
 
 const Participants = () => {
