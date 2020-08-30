@@ -61,6 +61,11 @@ const selectedPointsState = atom({
   key: 'selectedPoints'
 });
 
+const errorsState = atom({
+  key: 'errors',
+  default: []
+});
+
 const everyoneHasVoted = (votes) => {
   return votes
     .filter(v => !v.observer)
@@ -82,6 +87,8 @@ const PokerPlanning = () => {
   const [clients, setClients] = useRecoilState(clientsState);
   const [votes, setVotes] = useRecoilState(votesState);
   const [selectedPoints, setSelectedPoints] = useRecoilState(selectedPointsState);
+  const [errors, setErrors] = useRecoilState(errorsState);
+  const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
 
   useEffect(() => {
     setClient(new W3CWebSocket(WS_SERVER, 'echo-protocol'));
@@ -92,6 +99,13 @@ const PokerPlanning = () => {
       setVotes(msg.message);
     } else if (msg.type === Msg.MSG_RESET_VOTE) {
       setSelectedPoints(null);
+    } else if (msg.type === Msg.MSG_USER_EXISTS) {
+      const e = [...errors];
+      e.push("Name is in use. Pick another.");
+      setErrors(e);
+    } else if (msg.type === Msg.MSG_USERNAME_OK) {
+      setErrors([]);
+      setSubmitted(true);
     }
   };
 
@@ -116,7 +130,15 @@ const PokerPlanning = () => {
     <WelcomeScreen/>
     <Poker/>
     <Result/>
+    <Errors/>
   </Grid>
+};
+
+const Errors = () => {
+  const [errors] = useRecoilState(errorsState);
+  return <Box className="errors" color="secondary.main">
+    {errors.map(e => <Box key={e}>{e}</Box>)}
+  </Box>;
 };
 
 const points = ["1", "2", "3", "5", "8", "13", "21", "50", "?"];
@@ -250,8 +272,8 @@ const Title = () => {
 const WelcomeScreen = () => {
   const [client, setClient] = useRecoilState(clientState);
   const [user, setUser] = useRecoilState(userState);
-  const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
   const sendJoinMessage = () => sendMessage(client, Msg.MSG_CLIENT_CONNECT, user);
+  const [submitted] = useRecoilState(userSubmittedState);
 
   return submitted ? null :
     <div>
@@ -259,7 +281,6 @@ const WelcomeScreen = () => {
       <Box ml={1} display="inline">
         <Button color="primary" variant="contained" size="large" onClick={() => {
           sendJoinMessage();
-          setSubmitted(true);
         }}>Join</Button>
       </Box>
     </div>;

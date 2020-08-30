@@ -37,6 +37,12 @@ const sendUserList = (clear) => {
   }));
 };
 
+const sendUserExists = (socket) => {
+  socket.send(JSON.stringify({
+    type: msg.MSG_USER_EXISTS
+  }));
+};
+
 const votesWithUsernames = () => {
   return Object.values(clients).map(c => {
     return {
@@ -57,16 +63,32 @@ const sendResetVote = () => {
   }));
 };
 
+const sendUsernameOk = () => {
+  broadcast(JSON.stringify({
+    type: msg.MSG_USERNAME_OK
+  }));
+};
+
+const usernames = () => votesWithUsernames().map(v => v.username);
+
 const processMsg = (message, socket) => {
   let m = JSON.parse(message);
   if (m.type === msg.MSG_CLIENT_CONNECT) {
     let username = m.message;
-    console.log(`Client connected: ${username}`);
-    clients[socket.id] = {
-      socket: socket,
-      username: username
-    };
-    sendUserList();
+
+    let exists = usernames().includes(username);
+    if (exists) {
+      console.log("Username " + username + " already in use");
+      sendUserExists(socket);
+    } else {
+      console.log(`Client connected: ${username}`);
+      clients[socket.id] = {
+        socket: socket,
+        username: username
+      };
+      sendUsernameOk();
+      sendUserList();
+    }
   } else if (m.type === msg.MSG_CHAT) {
     broadcast(message);
   } else if (m.type === msg.MSG_VOTE) {
