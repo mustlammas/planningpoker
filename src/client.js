@@ -111,8 +111,8 @@ const PokerPlanning = () => {
   </Grid>
 };
 
-const points = ["1", "2", "3", "5", "8", "13", "21", "split it!", "?"];
-const numericPoints = [1, 2, 3, 5, 8, 13, 21];
+const points = ["1", "2", "3", "5", "8", "13", "21", "50", "?"];
+const numericPoints = [1, 2, 3, 5, 8, 13, 21, 50];
 
 const Poker = () => {
   const [client, setClient] = useRecoilState(clientState);
@@ -193,11 +193,11 @@ const Poker = () => {
           <TableBody>
             {votes.map(v => {
               let checkIcon = v.vote ? <CheckIcon/> : null;
-              let style = diffingUsers.includes(v.username) ? {backgroundColor: "#ff7961"} : {};
+              let style = diffingUsers.includes(v.username) ? {fontWeight: "bold", backgroundColor: "#ff7961"} : {fontWeight: "bold"};
               let nameStyle = user === v.username ? {fontWeight: "bold"} : {};
-              return <TableRow key={v.username} style={style}>
+              return <TableRow key={v.username}>
                 <TableCell component="th" scope="row" style={nameStyle}>{v.username}</TableCell>
-                <TableCell align="right">{reveal ? <Chip label={v.vote}/> : checkIcon}</TableCell>
+                <TableCell align="right">{reveal ? <Chip label={v.vote} style={style}/> : checkIcon}</TableCell>
               </TableRow>;
             })}
           </TableBody>
@@ -247,6 +247,11 @@ const Result = () => {
 
   if (everyoneHasVoted) {
     const numericVotes = votes.map(v => parseInt(v.vote)).filter(v => !isNaN(v)).sort();
+
+    if (numericVotes.length === 0) {
+      return <h1>?</h1>;
+    }
+
     const minVote = Math.min(...numericVotes);
     const maxVote = Math.max(...numericVotes);
     const minVoteIndex = numericPoints.indexOf(minVote);

@@ -10,6 +10,7 @@ App for playing Scrum planning poker
 - Show the voters who should argue/discuss further.
 - Show a "Fold" button for giving in.
 - Add "Observer" button to become a non-participant.
+- Make options configurable.
 
 # Start webpack dev server (frontend)::
 Server: ```npm run start```
