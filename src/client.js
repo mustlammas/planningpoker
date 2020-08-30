@@ -1,7 +1,5 @@
 'use strict';
 
-import './style.css';
-
 import React, {useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {w3cwebsocket as W3CWebSocket} from 'websocket';
@@ -15,7 +13,8 @@ import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import CheckIcon from '@material-ui/icons/Check';
 
-import * as Msg from './messages.js' ;
+import * as Msg from './messages.js';
+import './style.css';
 
 import {
   RecoilRoot,
@@ -75,7 +74,7 @@ const PokerPlanning = () => {
   const [selectedPoints, setSelectedPoints] = useRecoilState(selectedPointsState);
 
   useEffect(() => {
-    setClient(new W3CWebSocket('ws://localhost:3000/chat', 'echo-protocol'));
+    setClient(new W3CWebSocket(WS_SERVER, 'echo-protocol'));
   }, []);
 
   const processMsg = (msg) => {

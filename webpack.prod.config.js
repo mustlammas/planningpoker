@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const { merge } = require('webpack-merge');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const common = require('./webpack.common.config.js');
@@ -13,6 +14,11 @@ module.exports = merge(common, {
       }
     ]
   },
+  plugins: [
+    new webpack.DefinePlugin({
+      WS_SERVER: "'ws://34.90.238.42:2222/chat'"
+    })
+  ],
   devtool: 'source-map',
   plugins: [
     new MiniCssExtractPlugin({

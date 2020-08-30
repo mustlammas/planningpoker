@@ -1,12 +1,9 @@
 const http = require('http');
 const express = require('express');
-const webpack = require('webpack');
-const webpackDevMiddleware = require('webpack-dev-middleware');
-const webpackHotMiddleware = require('webpack-hot-middleware');
 const WebSocket = require('ws');
 
+const port = 2222;
 const app = express();
-const port = 3000;
 const devServerEnabled = true;
 const clients = {};
 const msg = require("./messages.js");
