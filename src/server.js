@@ -90,8 +90,9 @@ wss.on('connection', function connection(socket, req) {
     processMsg(message, socket);
   });
   socket.on('close', function(reasonCode, description) {
-    console.log('Client ' + connection.remoteAddress + ' disconnected.');
+    console.log('Client ' + socket.id + ' disconnected.');
     delete clients[socket.id];
+    sendUserList();
   });
 });
 
