@@ -263,7 +263,7 @@ const Result = () => {
       return <h1>{maxVote}</h1>;
     }
   } else {
-    return <h1>Waiting for everyone to vote...</h1>;
+    return <h1>Waiting for votes...</h1>;
   }
 };
 
