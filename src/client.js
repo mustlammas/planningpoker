@@ -66,6 +66,13 @@ const selectedPointsState = atom({
   key: 'selectedPoints'
 });
 
+const everyoneHasVoted = (votes) => {
+  return votes
+    .filter(v => !v.observer)
+    .filter(v => !v.hasOwnProperty('vote'))
+    .length === 0;
+};
+
 const PokerPlanning = () => {
   const [client, setClient] = useRecoilState(clientState);
   const [clients, setClients] = useRecoilState(clientsState);
@@ -104,7 +111,7 @@ const PokerPlanning = () => {
     alignItems="center"
     justify="center"
     style={{ minHeight: '100vh' }}>
-    <Participants/>
+    <WelcomeScreen/>
     <Poker/>
     <Result/>
   </Grid>
@@ -137,13 +144,29 @@ const Poker = () => {
     }
   };
 
-  const reveal = votes.filter(v => !v.hasOwnProperty('vote')).length === 0;
+  const becomeObserver = () => {
+    if (client.readyState === client.OPEN) {
+      client.send(JSON.stringify({
+        type: Msg.MSG_BECOME_OBSERVER
+      }));
+    }
+  };
 
-  const everyoneHasVoted = votes.filter(v => !v.hasOwnProperty('vote')).length === 0;
+  const becomeParticipant = () => {
+    if (client.readyState === client.OPEN) {
+      client.send(JSON.stringify({
+        type: Msg.MSG_BECOME_PARTICIPANT
+      }));
+    }
+  };
 
   const usersWithDiffingVotes = () => {
-    if (everyoneHasVoted) {
-      const numericVotes = votes.map(v => parseInt(v.vote)).filter(v => !isNaN(v)).sort();
+    if (everyoneHasVoted(votes)) {
+      const numericVotes = votes
+        .filter(v => !v.observer)
+        .map(v => parseInt(v.vote))
+        .filter(v => !isNaN(v))
+        .sort();
       const minVote = Math.min(...numericVotes);
       const maxVote = Math.max(...numericVotes);
       const minVoteIndex = numericPoints.indexOf(minVote);
@@ -154,27 +177,31 @@ const Poker = () => {
         return [];
       }
 
-      return votes.filter(v => {
-        if (!isNaN(v.vote)) {
-          const nr = parseInt(v.vote);
-          return nr === minVote || nr === maxVote
-        } else {
-          return false;
-        }
-      }).map(v => v.username);
+      return votes
+        .filter(v => !v.observer)
+        .filter(v => {
+          if (!isNaN(v.vote)) {
+            const nr = parseInt(v.vote);
+            return nr === minVote || nr === maxVote
+          } else {
+            return false;
+          }
+        }).map(v => v.username);
     } else {
       return [];
     }
   };
 
   const diffingUsers = usersWithDiffingVotes();
+  const myVote = votes.find(v => v.username === user);
+  const observer = myVote && myVote.observer;
 
   return submitted ? <Box>
     <Box>
       {points.map(p => {
         let color = selectedPoints === p ? "secondary" : "primary";
         return <Box key={p} p={1} display="inline">
-          <Button color={color} variant="contained" size="large" onClick={() => {
+          <Button color={color} variant="contained" size="large" disabled={observer} onClick={() => {
             sendVote(p);
             setSelectedPoints(p);
           }}>{p}</Button>
@@ -185,6 +212,8 @@ const Poker = () => {
       <Box flexGrow={1}>
         <Button variant="contained" onClick={() => resetVotes()}>Reset</Button>
       </Box>
+      {observer && <Button variant="contained" onClick={() => becomeParticipant()}>Participate</Button>}
+      {!observer && <Button variant="contained" onClick={() => becomeObserver()}>Observe</Button>}
     </Box>
     <Box p={2} width={1/3} mx="auto">
       <TableContainer>
@@ -194,9 +223,10 @@ const Poker = () => {
               let checkIcon = v.vote ? <CheckIcon/> : null;
               let style = diffingUsers.includes(v.username) ? {fontWeight: "bold", backgroundColor: "#ff7961"} : {fontWeight: "bold"};
               let nameStyle = user === v.username ? {fontWeight: "bold"} : {};
+              let vote = v.observer ? <Chip label="observer"/> : everyoneHasVoted(votes) ? <Chip label={v.vote} style={style}/> : checkIcon;
               return <TableRow key={v.username}>
                 <TableCell component="th" scope="row" style={nameStyle}>{v.username}</TableCell>
-                <TableCell align="right">{reveal ? <Chip label={v.vote} style={style}/> : checkIcon}</TableCell>
+                <TableCell align="right">{vote}</TableCell>
               </TableRow>;
             })}
           </TableBody>
@@ -240,12 +270,15 @@ const Chat = () => {
 const Result = () => {
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
   const [votes] = useRecoilState(votesState);
-  const everyoneHasVoted = votes.filter(v => !v.hasOwnProperty('vote')).length === 0;
 
   if (!submitted) return null;
 
-  if (everyoneHasVoted) {
-    const numericVotes = votes.map(v => parseInt(v.vote)).filter(v => !isNaN(v)).sort();
+  if (everyoneHasVoted(votes)) {
+    const numericVotes = votes
+      .filter(v => !v.observer)
+      .map(v => parseInt(v.vote))
+      .filter(v => !isNaN(v))
+      .sort();
 
     if (numericVotes.length === 0) {
       return <h1>?</h1>;
@@ -267,15 +300,13 @@ const Result = () => {
   }
 };
 
-const Participants = () => {
+const WelcomeScreen = () => {
   const [client, setClient] = useRecoilState(clientState);
   const [user, setUser] = useRecoilState(userState);
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
-  const [clients, setClients] = useRecoilState(clientsState);
 
   const sendJoinMessage = () => {
     if (client && client.readyState === client.OPEN) {
-      console.log(`Sending message: ${Msg.MSG_CLIENT_CONNECT}`);
       client.send(JSON.stringify({
         type: Msg.MSG_CLIENT_CONNECT,
         message: user
@@ -283,14 +314,8 @@ const Participants = () => {
     }
   };
 
-  if (submitted) {
-    return <div className="users">
-      {clients.map(c => {
-        return <Box key={c}>{c}</Box>;
-      })}
-    </div>;
-  } else {
-    return <div>
+  return submitted ? null :
+    <div>
       <TextField label="Name" variant="standard" type="text" value={user} onChange={(e) => setUser(e.target.value)}/>
       <Box ml={1} display="inline">
         <Button color="primary" variant="contained" size="large" onClick={() => {
@@ -299,7 +324,6 @@ const Participants = () => {
         }}>Join</Button>
       </Box>
     </div>;
-  }
 }
 
 ReactDOM.render(<Root/>, document.getElementById('root'));

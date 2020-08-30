@@ -41,7 +41,8 @@ const votesWithUsernames = () => {
   return Object.values(clients).map(c => {
     return {
       username: c.username,
-      vote: c.vote
+      vote: c.vote,
+      observer: c.observer
     };
   });
 };
@@ -80,6 +81,20 @@ const processMsg = (message, socket) => {
       delete c.vote;
     });
     sendResetVote();
+    sendUserList();
+  } else if (m.type === msg.MSG_BECOME_OBSERVER) {
+    console.log(`${socket.id} observs`);
+    clients[socket.id] = {
+      ...clients[socket.id],
+      observer: true
+    };
+    sendUserList();
+  } else if (m.type === msg.MSG_BECOME_PARTICIPANT) {
+    console.log(`${socket.id} participates`);
+    clients[socket.id] = {
+      ...clients[socket.id],
+      observer: false
+    };
     sendUserList();
   }
 };
