@@ -7,7 +7,7 @@ yarn-error.log*
 lerna-debug.log*
 
 # JS bundle
-public/bundle*.js
+dist/*
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json

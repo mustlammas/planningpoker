@@ -1,39 +1,21 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { merge } = require('webpack-merge');
+const common = require('./webpack.common.config.js');
 
-module.exports = {
+module.exports = merge(common, {
   mode: 'development',
-  entry: {
-    app: [
-      './src/client.js'
-    ]
-  },
-  output: {
-    path: path.join(__dirname, 'public'),
-    filename: 'app.dev.js'
-  },
   module: {
     rules: [
-      {
-        test: /\.js$/,
-        exclude: /node_modules/,
-        loader: 'babel-loader'
-      },
       {
         test: /\.css$/,
         use: ['style-loader', 'css-loader']
       }
     ]
   },
-  devtool: 'cheap-module-eval-source-map',
+  devtool: 'inline-source-map',
   devServer: {
-    contentBase: path.join(__dirname, 'public'),
+    contentBase: './dist',
     hot: true
-  },
-  plugins: [
-    new HtmlWebpackPlugin({
-      filename: 'index.html',
-      template: path.resolve(__dirname, 'public', 'index.html')
-    })
-  ]
-};
+  }
+});

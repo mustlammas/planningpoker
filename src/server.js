@@ -3,7 +3,6 @@ const express = require('express');
 const webpack = require('webpack');
 const webpackDevMiddleware = require('webpack-dev-middleware');
 const webpackHotMiddleware = require('webpack-hot-middleware');
-const config = require('../webpack.dev.config.js');
 const WebSocket = require('ws');
 
 const app = express();
@@ -11,36 +10,21 @@ const port = 3000;
 const devServerEnabled = true;
 const clients = {};
 const msg = require("./messages.js");
-const { v4: uuidv4 } = require('uuid');
+const {
+  v4: uuidv4
+} = require('uuid');
 const state = {
   revealVotes: false
 };
 
-if (devServerEnabled) {
-    console.log("Dev server enabled. Configuring development plugins.");
-    //reload=true:Enable auto reloading when changing JS files or content
-    //timeout=1000:Time from disconnecting from server to reconnecting
-    config.entry.app.unshift('webpack-hot-middleware/client?reload=true&timeout=1000');
-
-    //Add HMR plugin
-    config.plugins.push(new webpack.HotModuleReplacementPlugin());
-
-    const compiler = webpack(config);
-
-    //Enable "webpack-dev-middleware"
-    app.use(webpackDevMiddleware(compiler, {
-        publicPath: config.output.publicPath
-    }));
-
-    //Enable "webpack-hot-middleware"
-    app.use(webpackHotMiddleware(compiler));
-}
-
-app.use(express.static(__dirname + '/../public'));
+app.use(express.static(__dirname + '/../dist'));
 
 const server = http.createServer(app);
 
-const wss = new WebSocket.Server({ server: server, path: '/chat' });
+const wss = new WebSocket.Server({
+  server: server,
+  path: '/chat'
+});
 
 const broadcast = (message) => {
   Object.values(clients).forEach(c => {
@@ -49,7 +33,6 @@ const broadcast = (message) => {
 };
 
 const sendUserList = (clear) => {
-  console.log("state.revealVotes: ", state.revealVotes);
   broadcast(JSON.stringify({
     type: msg.MSG_UPDATE_USERS,
     message: votesWithUsernames(),
@@ -116,5 +99,5 @@ wss.on('connection', function connection(socket, req) {
 });
 
 server.listen(port, () => {
-    console.log('Server started on port ' + port);
+  console.log('Server started on port ' + port);
 });
