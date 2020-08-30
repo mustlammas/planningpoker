@@ -14,15 +14,13 @@ module.exports = merge(common, {
       }
     ]
   },
-  plugins: [
-    new webpack.DefinePlugin({
-      WS_SERVER: "'ws://34.90.238.42:2222/chat'"
-    })
-  ],
   devtool: 'source-map',
   plugins: [
     new MiniCssExtractPlugin({
       filename: '[name].[contenthash].css'
+    }),
+    new webpack.DefinePlugin({
+      WS_SERVER: "'ws://34.90.238.42:2222/chat'"
     })
   ]
 });
