@@ -2,9 +2,9 @@
 App for playing Scrum planning poker
 
 # TODO
-- Do not allow users with the same name
-- Add "Observer" button to become a non-participant.
+- Do not allow users with the same name.
 - Make voting options configurable.
+- Create "rooms" so that you can have more than one poker game at a time.
 
 # Start webpack dev server (frontend)::
 Server: ```npm run start```

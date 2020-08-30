@@ -32,11 +32,6 @@ const Root = () => {
   );
 };
 
-const chatState = atom({
-  key: 'chat',
-  default: ''
-});
-
 const clientState = atom({
   key: 'client',
   default: null
@@ -73,10 +68,18 @@ const everyoneHasVoted = (votes) => {
     .length === 0;
 };
 
+const sendMessage = (client, type, message) => {
+  if (client && client.readyState === client.OPEN) {
+    client.send(JSON.stringify({
+      type: type,
+      message: message
+    }));
+  }
+};
+
 const PokerPlanning = () => {
   const [client, setClient] = useRecoilState(clientState);
   const [clients, setClients] = useRecoilState(clientsState);
-  const [chat, setChat] = useRecoilState(chatState);
   const [votes, setVotes] = useRecoilState(votesState);
   const [selectedPoints, setSelectedPoints] = useRecoilState(selectedPointsState);
 
@@ -85,9 +88,7 @@ const PokerPlanning = () => {
   }, []);
 
   const processMsg = (msg) => {
-    if (msg.type === Msg.MSG_CHAT) {
-      setChat(`${chat}${msg.user}: ${msg.message}\n`);
-    } else if (msg.type === Msg.MSG_UPDATE_USERS) {
+    if (msg.type === Msg.MSG_UPDATE_USERS) {
       setVotes(msg.message);
     } else if (msg.type === Msg.MSG_RESET_VOTE) {
       setSelectedPoints(null);
@@ -111,6 +112,7 @@ const PokerPlanning = () => {
     alignItems="center"
     justify="center"
     style={{ minHeight: '100vh' }}>
+    <Title/>
     <WelcomeScreen/>
     <Poker/>
     <Result/>
@@ -127,38 +129,10 @@ const Poker = () => {
   const [selectedPoints, setSelectedPoints] = useRecoilState(selectedPointsState);
   const [votes, setVotes] = useRecoilState(votesState);
 
-  const sendVote = (vote) => {
-    if (client.readyState === client.OPEN) {
-      client.send(JSON.stringify({
-        type: Msg.MSG_VOTE,
-        message: vote
-      }));
-    }
-  };
-
-  const resetVotes = () => {
-    if (client.readyState === client.OPEN) {
-      client.send(JSON.stringify({
-        type: Msg.MSG_RESET_VOTE
-      }));
-    }
-  };
-
-  const becomeObserver = () => {
-    if (client.readyState === client.OPEN) {
-      client.send(JSON.stringify({
-        type: Msg.MSG_BECOME_OBSERVER
-      }));
-    }
-  };
-
-  const becomeParticipant = () => {
-    if (client.readyState === client.OPEN) {
-      client.send(JSON.stringify({
-        type: Msg.MSG_BECOME_PARTICIPANT
-      }));
-    }
-  };
+  const sendVote = (vote) => sendMessage(client, Msg.MSG_VOTE, vote);
+  const resetVotes = () => sendMessage(client, Msg.MSG_RESET_VOTE);
+  const becomeObserver = () => sendMessage(client, Msg.MSG_BECOME_OBSERVER);
+  const becomeParticipant = () => sendMessage(client, Msg.MSG_BECOME_PARTICIPANT);
 
   const usersWithDiffingVotes = () => {
     if (everyoneHasVoted(votes)) {
@@ -236,37 +210,6 @@ const Poker = () => {
   </Box> : null;
 };
 
-const Chat = () => {
-  const [client, setClient] = useRecoilState(clientState);
-  const [message, setMessage] = useState('');
-  const [chat, setChat] = useRecoilState(chatState);
-  const [user, setUser] = useRecoilState(userState);
-  const [clients, setClients] = useRecoilState(clientsState);
-  const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
-
-  const sendMessage = (message) => {
-    if (client.readyState === client.OPEN) {
-      client.send(JSON.stringify({
-        type: Msg.MSG_CHAT,
-        user: user,
-        message: message
-      }));
-      setMessage("");
-    }
-  };
-
-  return submitted ?
-  <div>
-    <div>
-      <input id="message" name="message" type="text" value={message} onChange={(e) => setMessage(e.target.value)}/>
-      <input id="send" type="button" onClick={(e) => sendMessage(message)} value="Send"/>
-    </div>
-    <div>
-      <textarea id="chat" className="chat" value={chat} readOnly={true} style={{height: "200px", width: "300px"}}/>
-    </div>
-  </div> : null;
-};
-
 const Result = () => {
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
   const [votes] = useRecoilState(votesState);
@@ -300,19 +243,15 @@ const Result = () => {
   }
 };
 
+const Title = () => {
+  return <h1>Planning Poker</h1>;
+};
+
 const WelcomeScreen = () => {
   const [client, setClient] = useRecoilState(clientState);
   const [user, setUser] = useRecoilState(userState);
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
-
-  const sendJoinMessage = () => {
-    if (client && client.readyState === client.OPEN) {
-      client.send(JSON.stringify({
-        type: Msg.MSG_CLIENT_CONNECT,
-        message: user
-      }));
-    }
-  };
+  const sendJoinMessage = () => sendMessage(client, Msg.MSG_CLIENT_CONNECT, user);
 
   return submitted ? null :
     <div>
