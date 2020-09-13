@@ -149,12 +149,16 @@ const heartbeat = () => {
     message: Date.now()
   }));
   for (const [socketId, c] of Object.entries(clients)) {
-    if (c.client_heartbeat && c.client_heartbeat + 10000 < millis) {
+    if (c.client_heartbeat && c.client_heartbeat + 10000 > millis) {
+      delete c['connection_broken'];
+    } else if (c.client_heartbeat && c.client_heartbeat + 10000 < millis) {
       c.connection_broken = true;
       if (!c.vote) {
         c.vote = "?";
       }
     }
+
+    // Disconnect if no heartbeat for 60 seconds
     if (c.client_heartbeat && c.client_heartbeat + 60000 < millis) {
       delete clients[socketId];
     }
