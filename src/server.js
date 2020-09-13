@@ -153,9 +153,6 @@ const heartbeat = () => {
       delete c['connection_broken'];
     } else if (c.client_heartbeat && c.client_heartbeat + 10000 < millis) {
       c.connection_broken = true;
-      if (!c.vote) {
-        c.vote = "?";
-      }
     }
 
     // Disconnect if no heartbeat for 60 seconds
