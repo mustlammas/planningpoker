@@ -10,9 +10,6 @@ const msg = require("./messages.js");
 const {
   v4: uuidv4
 } = require('uuid');
-const state = {
-  revealVotes: false
-};
 
 app.use(express.static(__dirname + '/../dist'));
 
@@ -32,8 +29,7 @@ const broadcast = (message) => {
 const sendUserList = (clear) => {
   broadcast(JSON.stringify({
     type: msg.MSG_UPDATE_USERS,
-    message: votesWithUsernames(),
-    reveal: state.revealVotes
+    message: votesWithUsernames()
   }));
 };
 
@@ -48,7 +44,8 @@ const votesWithUsernames = () => {
     return {
       username: c.username,
       vote: c.vote,
-      observer: c.observer
+      observer: c.observer,
+      connection_broken: c.connection_broken
     };
   });
 };
@@ -98,7 +95,6 @@ const processMsg = (message, socket) => {
     };
     sendUserList();
   } else if (m.type === msg.MSG_RESET_VOTE) {
-    state.revealVotes = false;
     Object.values(clients).forEach(c => {
       delete c.vote;
     });
@@ -125,6 +121,15 @@ const processMsg = (message, socket) => {
       }
     });
     sendUserList();
+  } else if (m.type === msg.MSG_HEARTBEAT) {
+    const c = clients[socket.id];
+    const client_heartbeat = m.message;
+    const server_timestamp = Date.now();
+    const diff = server_timestamp - client_heartbeat;
+    if (diff > 5000) {
+      c.connection_broken = true;
+    }
+    sendUserList();
   }
 };
 
@@ -140,6 +145,16 @@ wss.on('connection', function connection(socket, req) {
   });
 });
 
+const heartbeat = () => {
+  const millis = Date.now();
+  broadcast(JSON.stringify({
+    type: msg.MSG_HEARTBEAT,
+    message: Date.now()
+  }));
+};
+
 server.listen(port, () => {
   console.log('Server started on port ' + port);
 });
+
+setInterval(heartbeat, 5000);

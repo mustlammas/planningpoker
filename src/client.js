@@ -12,6 +12,8 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import CheckIcon from '@material-ui/icons/Check';
+import WifiIcon from '@material-ui/icons/Wifi';
+import WifiOffIcon from '@material-ui/icons/WifiOff';
 
 import * as Msg from './messages.js';
 import './style.css';
@@ -106,6 +108,8 @@ const PokerPlanning = () => {
     } else if (msg.type === Msg.MSG_USERNAME_OK) {
       setErrors([]);
       setSubmitted(true);
+    } else if (msg.type === Msg.MSG_HEARTBEAT) {
+      sendMessage(client, Msg.MSG_HEARTBEAT, msg.message);
     }
   };
 
@@ -221,9 +225,19 @@ const Poker = () => {
               let checkIcon = v.vote ? <CheckIcon/> : null;
               let style = diffingUsers.includes(v.username) ? {fontWeight: "bold", backgroundColor: "#ff7961"} : {fontWeight: "bold"};
               let nameStyle = user === v.username ? {fontWeight: "bold"} : {};
+              let connectionIcon = v.connection_broken ? <WifiOffIcon color="#aaa" size="small"/> : <WifiIcon style={{ color: "#ccc" }} size="small"/>;
               let vote = v.observer ? <Chip label="observer"/> : everyoneHasVoted(votes) ? <Chip label={v.vote} style={style}/> : checkIcon;
               return <TableRow key={v.username}>
-                <TableCell component="th" scope="row" style={nameStyle}>{v.username}</TableCell>
+                <TableCell align="left" style={nameStyle}>
+                <Grid container direction="row" alignItems="center">
+                  <Grid item>
+                    <Box display="inline">{connectionIcon}</Box>
+                  </Grid>
+                  <Grid item>
+                    <Box display="inline" ml={1} style={nameStyle}>{v.username}</Box>
+                  </Grid>
+                </Grid>
+                </TableCell>
                 <TableCell align="right">{vote}</TableCell>
               </TableRow>;
             })}
