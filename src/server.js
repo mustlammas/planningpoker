@@ -148,14 +148,17 @@ const heartbeat = () => {
     type: msg.MSG_HEARTBEAT,
     message: Date.now()
   }));
-  Object.values(clients).forEach(c => {
+  for (const [socketId, c] of Object.entries(clients)) {
     if (c.client_heartbeat && c.client_heartbeat + 10000 < millis) {
       c.connection_broken = true;
       if (!c.vote) {
         c.vote = "?";
       }
     }
-  });
+    if (c.client_heartbeat && c.client_heartbeat + 60000 < millis) {
+      delete clients[socketId];
+    }
+  }
   sendUserList();
 };
 
