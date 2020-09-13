@@ -124,12 +124,9 @@ const processMsg = (message, socket) => {
   } else if (m.type === msg.MSG_HEARTBEAT) {
     const c = clients[socket.id];
     const client_heartbeat = m.message;
-    const server_timestamp = Date.now();
-    const diff = server_timestamp - client_heartbeat;
-    if (diff > 5000) {
-      c.connection_broken = true;
+    if (!c.client_heartbeat || c.client_heartbeat < client_heartbeat) {
+      c.client_heartbeat = client_heartbeat;
     }
-    sendUserList();
   }
 };
 
@@ -151,6 +148,15 @@ const heartbeat = () => {
     type: msg.MSG_HEARTBEAT,
     message: Date.now()
   }));
+  Object.values(clients).forEach(c => {
+    if (c.client_heartbeat && c.client_heartbeat + 10000 < millis) {
+      c.connection_broken = true;
+      if (!c.vote) {
+        c.vote = "?";
+      }
+    }
+  });
+  sendUserList();
 };
 
 server.listen(port, () => {
