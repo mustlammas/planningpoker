@@ -225,7 +225,6 @@ const Poker = () => {
               let checkIcon = v.vote ? <CheckIcon/> : null;
               let style = diffingUsers.includes(v.username) ? {fontWeight: "bold", backgroundColor: "#ff7961"} : {fontWeight: "bold"};
               let nameStyle = user === v.username ? {fontWeight: "bold"} : {};
-              let connectionIcon = v.connection_broken ?  : null;
               let vote = v.observer ?
                 <Chip label="observer"/> :
                 v.connection_broken ?
