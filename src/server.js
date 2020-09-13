@@ -124,7 +124,7 @@ const processMsg = (message, socket) => {
   } else if (m.type === msg.MSG_HEARTBEAT) {
     const c = clients[socket.id];
     const client_heartbeat = m.message;
-    if (!c.client_heartbeat || c.client_heartbeat < client_heartbeat) {
+    if (c && !c.client_heartbeat || c.client_heartbeat < client_heartbeat) {
       c.client_heartbeat = client_heartbeat;
     }
   }
