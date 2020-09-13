@@ -233,16 +233,7 @@ const Poker = () => {
                     <Chip label={v.vote} style={style}/> :
                     checkIcon;
               return <TableRow key={v.username}>
-                <TableCell align="left" style={nameStyle}>
-                <Grid container direction="row" alignItems="center">
-                  <Grid item>
-                    <Box display="inline">{connectionIcon}</Box>
-                  </Grid>
-                  <Grid item>
-                    <Box display="inline" ml={1} style={nameStyle}>{v.username}</Box>
-                  </Grid>
-                </Grid>
-                </TableCell>
+                <TableCell align="left" style={nameStyle}>{v.username}</TableCell>
                 <TableCell align="right">{vote}</TableCell>
               </TableRow>;
             })}
