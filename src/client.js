@@ -155,6 +155,7 @@ const Poker = () => {
   const resetVotes = () => sendMessage(client, Msg.MSG_RESET_VOTE);
   const becomeObserver = () => sendMessage(client, Msg.MSG_BECOME_OBSERVER);
   const becomeParticipant = () => sendMessage(client, Msg.MSG_BECOME_PARTICIPANT);
+  const revealVotes = () => sendMessage(client, Msg.MSG_REVEAL_VOTES);
 
   const usersWithDiffingVotes = () => {
     if (everyoneHasVoted(votes)) {
@@ -206,7 +207,8 @@ const Poker = () => {
     </Box>
     <Box p={2} display="flex">
       <Box flexGrow={1}>
-        <Button variant="contained" onClick={() => resetVotes()}>Reset</Button>
+        <Box display="inline" ml={2}><Button variant="contained" onClick={() => resetVotes()}>Reset</Button></Box>
+        <Box display="inline" ml={2}><Button variant="contained" onClick={() => revealVotes()}>Reveal</Button></Box>
       </Box>
       {observer && <Button variant="contained" onClick={() => becomeParticipant()}>Participate</Button>}
       {!observer && <Button variant="contained" onClick={() => becomeObserver()}>Observe</Button>}

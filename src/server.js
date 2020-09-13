@@ -118,6 +118,13 @@ const processMsg = (message, socket) => {
       observer: false
     };
     sendUserList();
+  } else if (m.type === msg.MSG_REVEAL_VOTES) {
+    Object.values(clients).forEach(c => {
+      if (!c.vote) {
+        c.vote = "?";
+      }
+    });
+    sendUserList();
   }
 };
 

@@ -2,7 +2,6 @@
 App for playing Scrum planning poker
 
 # TODO
-- Do not allow users with the same name.
 - Make voting options configurable.
 - Create "rooms" so that you can have more than one poker game at a time.
 - Allow renaming one's own name.
