@@ -225,8 +225,14 @@ const Poker = () => {
               let checkIcon = v.vote ? <CheckIcon/> : null;
               let style = diffingUsers.includes(v.username) ? {fontWeight: "bold", backgroundColor: "#ff7961"} : {fontWeight: "bold"};
               let nameStyle = user === v.username ? {fontWeight: "bold"} : {};
-              let connectionIcon = v.connection_broken ? <WifiOffIcon color="#ccc"/> : null;
-              let vote = v.observer ? <Chip label="observer"/> : everyoneHasVoted(votes) ? <Chip label={v.vote} style={style}/> : checkIcon;
+              let connectionIcon = v.connection_broken ?  : null;
+              let vote = v.observer ?
+                <Chip label="observer"/> :
+                v.connection_broken ?
+                  <WifiOffIcon color="#ccc"/> :
+                  everyoneHasVoted(votes) ?
+                    <Chip label={v.vote} style={style}/> :
+                    checkIcon;
               return <TableRow key={v.username}>
                 <TableCell align="left" style={nameStyle}>
                 <Grid container direction="row" alignItems="center">
