@@ -225,16 +225,15 @@ const Poker = () => {
               let checkIcon = v.vote ? <CheckIcon/> : null;
               let style = diffingUsers.includes(v.username) ? {fontWeight: "bold", backgroundColor: "#ff7961"} : {fontWeight: "bold"};
               let nameStyle = user === v.username ? {fontWeight: "bold"} : {};
+              let connProblem = v.connection_broken ? <WifiOffIcon color="#ccc"/> : null;
               let vote = v.observer ?
                 <Chip label="observer"/> :
-                v.connection_broken ?
-                  <WifiOffIcon color="#ccc"/> :
-                  everyoneHasVoted(votes) ?
-                    <Chip label={v.vote} style={style}/> :
-                    checkIcon;
+                everyoneHasVoted(votes) ?
+                  <Chip label={v.vote} style={style}/> :
+                  checkIcon;
               return <TableRow key={v.username}>
                 <TableCell align="left" style={nameStyle}>{v.username}</TableCell>
-                <TableCell align="right">{vote}</TableCell>
+                <TableCell align="right">{connProblem} {vote}</TableCell>
               </TableRow>;
             })}
           </TableBody>
