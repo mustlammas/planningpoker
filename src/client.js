@@ -285,10 +285,13 @@ const WelcomeScreen = () => {
   const [user, setUser] = useRecoilState(userState);
   const sendJoinMessage = () => sendMessage(client, Msg.MSG_CLIENT_CONNECT, user);
   const [submitted] = useRecoilState(userSubmittedState);
+  const onEnter = (e) => {
+    if(e.keyCode == 13) sendJoinMessage();
+  };
 
   return submitted ? null :
     <div>
-      <TextField label="Name" variant="standard" type="text" value={user} onChange={(e) => setUser(e.target.value)}/>
+      <TextField onKeyDown={onEnter} autoFocus label="Name" variant="standard" type="text" value={user} onChange={(e) => setUser(e.target.value)}/>
       <Box ml={1} display="inline">
         <Button color="primary" variant="contained" size="large" onClick={() => {
           sendJoinMessage();
