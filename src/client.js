@@ -179,13 +179,13 @@ const ConfigModal = ({config}) => {
     style={{width: "400px"}}
     open={configuring}
     onClose={() => setConfiguring(false)}>
-    <div style={{backgroundColor: "#eee "}}>
+    <Box style={{backgroundColor: "#eee "}}>
       <TableContainer component={Paper}>
         <Table aria-label="Options table" size="small">
           <TableHead>
             <TableRow width="10rem">
               <TableCell>Label</TableCell>
-              <TableCell align="right">Numeric value</TableCell>
+              <TableCell align="right">Value (number)</TableCell>
               <TableCell/>
             </TableRow>
           </TableHead>
@@ -237,10 +237,10 @@ const ConfigModal = ({config}) => {
 
               return <TableRow key={i}>
                 <TableCell>
-                  <TextField id="outlined-basic" variant="outlined" size="small" value={option.text} onChange={onTextChange}/>
+                  <TextField variant="outlined" size="small" value={option.text} onChange={onTextChange}/>
                 </TableCell>
                 <TableCell align="left">
-                  <TextField id="outlined-basic" variant="outlined" size="small" value={option.value} onChange={onValueChange}/>
+                  <TextField variant="outlined" size="small" value={option.value} onChange={onValueChange}/>
                 </TableCell>
                 <TableCell align="right">
                   {
@@ -252,10 +252,13 @@ const ConfigModal = ({config}) => {
           </TableBody>
         </Table>
       </TableContainer>
-      <div>
-        <Button onClick={onSave}>Save</Button>
-      </div>
-    </div>
+      <Box style={{padding: "10px"}}>
+        <i>Negative values are ignored when determining the result of a vote.</i>
+      </Box>
+      <Box display="flex" justifyContent="flex-end" style={{padding: "10px"}}>
+        <Button color="primary" variant="contained" onClick={onSave}>Save</Button>
+      </Box>
+    </Box>
   </Modal>;
 };
 
