@@ -48,6 +48,7 @@ const defaultOptions = [
     value: -1,
     text: "?"
   }];
+
 const config = {
   options: defaultOptions
 };
@@ -176,6 +177,15 @@ const processMsg = (message, socket) => {
     if (c && !c.client_heartbeat || c.client_heartbeat < client_heartbeat) {
       c.client_heartbeat = client_heartbeat;
     }
+  } else if (m.type === msg.MSG_UPDATE_CONFIG) {
+    console.log("Updated config: ", m.message);
+    config.options = m.message;
+    sendConfig();
+    Object.values(clients).forEach(c => {
+      delete c.vote;
+    });
+    sendResetVote();
+    sendUserList();
   }
 };
 

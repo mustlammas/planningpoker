@@ -3,7 +3,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {w3cwebsocket as W3CWebSocket} from 'websocket';
-import { Box, Button, Chip, Divider, Grid, List, ListItem, TextField } from '@material-ui/core';
+import { Box, Button, Chip, Divider, Grid, List, ListItem, TextField, Modal } from '@material-ui/core';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -14,6 +14,7 @@ import Paper from '@material-ui/core/Paper';
 import CheckIcon from '@material-ui/icons/Check';
 import WifiIcon from '@material-ui/icons/Wifi';
 import WifiOffIcon from '@material-ui/icons/WifiOff';
+import SettingsIcon from '@material-ui/icons/Settings';
 
 import * as Msg from './messages.js';
 import './style.css';
@@ -73,6 +74,11 @@ const configState = atom({
   default: {}
 });
 
+const configuringState = atom({
+  key: 'configuring',
+  default: false
+});
+
 const everyoneHasVoted = (votes) => {
   return votes
     .filter(v => !v.observer)
@@ -117,7 +123,7 @@ const PokerPlanning = () => {
     } else if (msg.type === Msg.MSG_HEARTBEAT) {
       sendMessage(client, Msg.MSG_HEARTBEAT, msg.message);
     } else if (msg.type === Msg.MSG_CONFIG) {
-      console.log("RECEIVED CONFIG: ", msg.message);
+      console.log("Received config: ", msg.message);
       setConfig(msg.message);
     }
   };
@@ -132,19 +138,138 @@ const PokerPlanning = () => {
     };
   }
 
-  return <Grid
+  return <div>
+  <Config/>
+  <Grid
     container
     spacing={0}
     direction="column"
     alignItems="center"
     justify="center"
-    style={{ minHeight: '100vh' }}>
+    style={{ minHeight: '100vh'}}
+    className="container">
     <Title/>
     <WelcomeScreen/>
     <Poker/>
     <Result/>
     <Errors/>
   </Grid>
+  </div>;
+};
+
+const ConfigModal = ({config}) => {
+  const [configuring, setConfiguring] = useRecoilState(configuringState);
+  const [client, setClient] = useRecoilState(clientState);
+
+  const [options, setOptions] = useState([...config.options, {text: "", value: ""}]);
+
+  const onSave = () => {
+    const filtered = options.filter(o => o.text && o.value).map(o => {
+      const value = isNaN(o.value) ? -1 : parseInt(o.value);
+      return {
+        text: o.text,
+        value: value
+      };
+    });
+    sendMessage(client, Msg.MSG_UPDATE_CONFIG, filtered);
+    setConfiguring(false);
+  };
+
+  return <Modal
+    style={{width: "400px"}}
+    open={configuring}
+    onClose={() => setConfiguring(false)}>
+    <div style={{backgroundColor: "#eee "}}>
+      <TableContainer component={Paper}>
+        <Table aria-label="Options table" size="small">
+          <TableHead>
+            <TableRow width="10rem">
+              <TableCell>Label</TableCell>
+              <TableCell align="right">Numeric value</TableCell>
+              <TableCell/>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {options.map((option, i) => {
+              const onTextChange = (e) => {
+                const newText = e.target.value;
+                const newOptions = [...options];
+                const oldOption = newOptions[i];
+                const newOption = {
+                  ...oldOption,
+                  text: newText
+                };
+
+                newOptions.splice(i, 1, newOption);
+
+                const lastOption = newOptions[newOptions.length - 1];
+                if (lastOption.text && lastOption.value) {
+                  newOptions.push({text: "", value: ""});
+                }
+
+                setOptions(newOptions);
+              };
+
+              const onValueChange = (e) => {
+                const newValue = e.target.value;
+                const newOptions = [...options];
+                const oldOption = newOptions[i];
+                const newOption = {
+                  ...oldOption,
+                  value: newValue
+                };
+
+                newOptions.splice(i, 1, newOption);
+
+                const lastOption = newOptions[newOptions.length - 1];
+                if (lastOption.text && lastOption.value) {
+                  newOptions.push({text: "", value: ""});
+                }
+
+                setOptions(newOptions);
+              };
+
+              const onRemove = () => {
+                const newOptions = [...options];
+                newOptions.splice(i, 1);
+                setOptions(newOptions);
+              };
+
+              return <TableRow key={i}>
+                <TableCell>
+                  <TextField id="outlined-basic" variant="outlined" size="small" value={option.text} onChange={onTextChange}/>
+                </TableCell>
+                <TableCell align="left">
+                  <TextField id="outlined-basic" variant="outlined" size="small" value={option.value} onChange={onValueChange}/>
+                </TableCell>
+                <TableCell align="right">
+                  {
+                    option.text && option.value && <Button onClick={onRemove}>Remove</Button>
+                  }
+                </TableCell>
+              </TableRow>;
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <div>
+        <Button onClick={onSave}>Save</Button>
+      </div>
+    </div>
+  </Modal>;
+};
+
+const Config = () => {
+  const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
+  const [configuring, setConfiguring] = useRecoilState(configuringState);
+  const [config, setConfig] = useRecoilState(configState);
+
+  return submitted && <div>
+    <Button style={{color: "#aaa"}} size="small" onClick={() => setConfiguring(true)}><SettingsIcon/> Configure</Button>
+    {
+      configuring && <ConfigModal config={config}/>
+    }
+  </div>;
 };
 
 const Errors = () => {
@@ -161,6 +286,7 @@ const Poker = () => {
   const [selectedPoints, setSelectedPoints] = useRecoilState(selectedPointsState);
   const [votes, setVotes] = useRecoilState(votesState);
   const config = useRecoilValue(configState);
+  const [configuring, setConfiguring] = useRecoilState(configuringState);
 
   const sendVote = (vote) => sendMessage(client, Msg.MSG_VOTE, vote);
   const resetVotes = () => sendMessage(client, Msg.MSG_RESET_VOTE);
@@ -175,10 +301,13 @@ const Poker = () => {
         .map(v => parseInt(v.vote))
         .filter(v => v >= 0)
         .sort();
+
       const minVote = Math.min(...numericVotes);
       const maxVote = Math.max(...numericVotes);
-      const minVoteIndex = config.options.indexOf(config.options.find(o => o.value === minVote));
-      const maxVoteIndex = config.options.indexOf(config.options.find(o => o.value === maxVote));
+      const maxVoteObject = config.options.find(o => o.value === maxVote);
+      const minVoteObject = config.options.find(o => o.value === minVote);
+      const minVoteIndex = config.options.indexOf(minVoteObject);
+      const maxVoteIndex = config.options.indexOf(maxVoteObject);
       const indexDiff = maxVoteIndex - minVoteIndex;
 
       if (indexDiff < 2) {
@@ -204,8 +333,8 @@ const Poker = () => {
   const myVote = votes.find(v => v.username === user);
   const observer = myVote && myVote.observer;
 
-  return submitted && config.options ? <Box>
-    <Box>
+  return submitted && config.options ? <Box style={{minWidth: "700px"}}>
+    <Grid container justify="center">
       {config.options.map(option => {
         let color = selectedPoints === option.value ? "secondary" : "primary";
         return <Box key={option.value} p={1} display="inline">
@@ -215,7 +344,7 @@ const Poker = () => {
           }}>{option.text}</Button>
         </Box>;
       })}
-    </Box>
+    </Grid>
     <Box p={2} display="flex">
       <Box flexGrow={1}>
         <Box display="inline" ml={2}><Button variant="contained" onClick={() => resetVotes()}>Reset</Button></Box>
@@ -271,14 +400,16 @@ const Result = () => {
 
     const minVote = Math.min(...numericVotes);
     const maxVote = Math.max(...numericVotes);
-    const minVoteIndex = config.options.indexOf(config.options.find(o => o.value === minVote));
-    const maxVoteIndex = config.options.indexOf(config.options.find(o => o.value === maxVote));
+    const maxVoteObject = config.options.find(o => o.value === maxVote);
+    const minVoteObject = config.options.find(o => o.value === minVote);
+    const minVoteIndex = config.options.indexOf(minVoteObject);
+    const maxVoteIndex = config.options.indexOf(maxVoteObject);
     const indexDiff = maxVoteIndex - minVoteIndex;
 
     if (indexDiff > 1) {
       return <h1>Conflicting votes!</h1>;
     } else {
-      return <h1>{maxVote}</h1>;
+      return <h1>{maxVoteObject && maxVoteObject.text}</h1>;
     }
   } else {
     return <h1>Waiting for votes...</h1>;
