@@ -68,6 +68,11 @@ const errorsState = atom({
   default: []
 });
 
+const configState = atom({
+  key: 'config',
+  default: {}
+});
+
 const everyoneHasVoted = (votes) => {
   return votes
     .filter(v => !v.observer)
@@ -91,6 +96,7 @@ const PokerPlanning = () => {
   const [selectedPoints, setSelectedPoints] = useRecoilState(selectedPointsState);
   const [errors, setErrors] = useRecoilState(errorsState);
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
+  const [config, setConfig] = useRecoilState(configState);
 
   useEffect(() => {
     setClient(new W3CWebSocket(WS_SERVER, 'echo-protocol'));
@@ -110,6 +116,9 @@ const PokerPlanning = () => {
       setSubmitted(true);
     } else if (msg.type === Msg.MSG_HEARTBEAT) {
       sendMessage(client, Msg.MSG_HEARTBEAT, msg.message);
+    } else if (msg.type === Msg.MSG_CONFIG) {
+      console.log("RECEIVED CONFIG: ", msg.message);
+      setConfig(msg.message);
     }
   };
 
@@ -145,15 +154,13 @@ const Errors = () => {
   </Box>;
 };
 
-const points = ["1", "2", "3", "5", "8", "13", "21", "50", "?"];
-const numericPoints = [1, 2, 3, 5, 8, 13, 21, 50];
-
 const Poker = () => {
   const [client, setClient] = useRecoilState(clientState);
   const [user, setUser] = useRecoilState(userState);
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
   const [selectedPoints, setSelectedPoints] = useRecoilState(selectedPointsState);
   const [votes, setVotes] = useRecoilState(votesState);
+  const config = useRecoilValue(configState);
 
   const sendVote = (vote) => sendMessage(client, Msg.MSG_VOTE, vote);
   const resetVotes = () => sendMessage(client, Msg.MSG_RESET_VOTE);
@@ -162,16 +169,16 @@ const Poker = () => {
   const revealVotes = () => sendMessage(client, Msg.MSG_REVEAL_VOTES);
 
   const usersWithDiffingVotes = () => {
-    if (everyoneHasVoted(votes)) {
+    if (everyoneHasVoted(votes) && config.options) {
       const numericVotes = votes
         .filter(v => !v.observer)
         .map(v => parseInt(v.vote))
-        .filter(v => !isNaN(v))
+        .filter(v => v >= 0)
         .sort();
       const minVote = Math.min(...numericVotes);
       const maxVote = Math.max(...numericVotes);
-      const minVoteIndex = numericPoints.indexOf(minVote);
-      const maxVoteIndex = numericPoints.indexOf(maxVote);
+      const minVoteIndex = config.options.indexOf(config.options.find(o => o.value === minVote));
+      const maxVoteIndex = config.options.indexOf(config.options.find(o => o.value === maxVote));
       const indexDiff = maxVoteIndex - minVoteIndex;
 
       if (indexDiff < 2) {
@@ -197,15 +204,15 @@ const Poker = () => {
   const myVote = votes.find(v => v.username === user);
   const observer = myVote && myVote.observer;
 
-  return submitted ? <Box>
+  return submitted && config.options ? <Box>
     <Box>
-      {points.map(p => {
-        let color = selectedPoints === p ? "secondary" : "primary";
-        return <Box key={p} p={1} display="inline">
+      {config.options.map(option => {
+        let color = selectedPoints === option.value ? "secondary" : "primary";
+        return <Box key={option.value} p={1} display="inline">
           <Button color={color} variant="contained" size="large" disabled={observer} onClick={() => {
-            sendVote(p);
-            setSelectedPoints(p);
-          }}>{p}</Button>
+            sendVote(option.value);
+            setSelectedPoints(option.value);
+          }}>{option.text}</Button>
         </Box>;
       })}
     </Box>
@@ -222,14 +229,15 @@ const Poker = () => {
         <Table size="small" aria-label="a dense table">
           <TableBody>
             {votes.map(v => {
-              let checkIcon = v.vote ? <CheckIcon/> : null;
+              let checkIcon = v.vote ? <CheckIcon/> : null
               let style = diffingUsers.includes(v.username) ? {fontWeight: "bold", backgroundColor: "#ff7961"} : {fontWeight: "bold"};
               let nameStyle = user === v.username ? {fontWeight: "bold"} : {};
               let connProblem = v.connection_broken ? <WifiOffIcon color="#ccc"/> : null;
+              let voteObject = config.options.find(o => o.value === v.vote) || {value: -1, text: "?"};
               let vote = v.observer ?
                 <Chip label="observer"/> :
                 everyoneHasVoted(votes) ?
-                  <Chip label={v.vote} style={style}/> :
+                  <Chip label={voteObject.text} style={style}/> :
                   checkIcon;
               return <TableRow key={v.username}>
                 <TableCell align="left" style={nameStyle}>{v.username}</TableCell>
@@ -246,6 +254,7 @@ const Poker = () => {
 const Result = () => {
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
   const [votes] = useRecoilState(votesState);
+  const config = useRecoilValue(configState);
 
   if (!submitted) return null;
 
@@ -253,7 +262,7 @@ const Result = () => {
     const numericVotes = votes
       .filter(v => !v.observer)
       .map(v => parseInt(v.vote))
-      .filter(v => !isNaN(v))
+      .filter(v => v >= 0)
       .sort();
 
     if (numericVotes.length === 0) {
@@ -262,8 +271,8 @@ const Result = () => {
 
     const minVote = Math.min(...numericVotes);
     const maxVote = Math.max(...numericVotes);
-    const minVoteIndex = numericPoints.indexOf(minVote);
-    const maxVoteIndex = numericPoints.indexOf(maxVote);
+    const minVoteIndex = config.options.indexOf(config.options.find(o => o.value === minVote));
+    const maxVoteIndex = config.options.indexOf(config.options.find(o => o.value === maxVote));
     const indexDiff = maxVoteIndex - minVoteIndex;
 
     if (indexDiff > 1) {

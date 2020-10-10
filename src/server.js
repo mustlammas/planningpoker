@@ -11,6 +11,47 @@ const {
   v4: uuidv4
 } = require('uuid');
 
+const defaultOptions = [
+  {
+    value: 1,
+    text: "1"
+  },
+  {
+    value: 2,
+    text: "2"
+  },
+  {
+    value: 3,
+    text: "3"
+  },
+  {
+    value: 5,
+    text: "5"
+  },
+  {
+    value: 8,
+    text: "8"
+  },
+  {
+    value: 13,
+    text: "13"
+  },
+  {
+    value: 20,
+    text: "20"
+  },
+  {
+    value: 50,
+    text: "50"
+  },
+  {
+    value: -1,
+    text: "?"
+  }];
+const config = {
+  options: defaultOptions
+};
+
 app.use(express.static(__dirname + '/../dist'));
 
 const server = http.createServer(app);
@@ -68,6 +109,13 @@ const sendUsernameOk = () => {
 
 const usernames = () => votesWithUsernames().map(v => v.username);
 
+const sendConfig = () => {
+  broadcast(JSON.stringify({
+    type: msg.MSG_CONFIG,
+    message: config
+  }));
+};
+
 const processMsg = (message, socket) => {
   let m = JSON.parse(message);
   if (m.type === msg.MSG_CLIENT_CONNECT) {
@@ -85,6 +133,7 @@ const processMsg = (message, socket) => {
       };
       sendUsernameOk();
       sendUserList();
+      sendConfig();
     }
   } else if (m.type === msg.MSG_CHAT) {
     broadcast(message);
