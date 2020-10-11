@@ -358,7 +358,7 @@ const Poker = () => {
     </Box>
     <Box p={2} width={1/3} mx="auto">
       <TableContainer>
-        <Table size="small" aria-label="a dense table">
+        <Table size="small" aria-label="a table">
           <TableBody>
             {votes.map(v => {
               let checkIcon = v.vote ? <CheckIcon/> : null
@@ -371,7 +371,7 @@ const Poker = () => {
                 everyoneHasVoted(votes) ?
                   <Chip label={voteObject.text} style={style}/> :
                   checkIcon;
-              return <TableRow key={v.username}>
+              return <TableRow key={v.username} style={{height: "50px"}}>
                 <TableCell align="left" style={nameStyle}>{v.username}</TableCell>
                 <TableCell align="right">{connProblem} {vote}</TableCell>
               </TableRow>;
