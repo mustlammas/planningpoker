@@ -20,7 +20,7 @@ module.exports = merge(common, {
       filename: '[name].[contenthash].css'
     }),
     new webpack.DefinePlugin({
-      WS_SERVER: "'ws://34.90.238.42:2222/chat'"
+      WS_SERVER: "'ws://34.90.238.42:2222/ws'"
     })
   ]
 });

@@ -1,15 +1,24 @@
 const http = require('http');
 const express = require('express');
 const WebSocket = require('ws');
+const crypto = require("crypto");
 
 const port = 2222;
 const app = express();
 const devServerEnabled = true;
 const clients = {};
-const msg = require("./messages.js");
+const msg = require("./shared/messages.js");
 const {
   v4: uuidv4
 } = require('uuid');
+
+/*
+ A room has the following attributes:
+ - name
+ - password (optional)
+ - clients
+ - configuration
+*/
 
 const defaultOptions = [
   {
@@ -49,29 +58,57 @@ const defaultOptions = [
     text: "?"
   }];
 
-const config = {
-  options: defaultOptions
+app.use(express.static(__dirname + '/../dist'));
+
+const MAX_ROOMS = 10;
+const rooms = {};
+
+const createRoom = () => {
+  const id = crypto.randomBytes(10).toString('hex');
+  console.log("New room: ", id);
+  rooms[id] = {
+    id: id,
+    name: `Room ${id}`,
+    options: defaultOptions
+  };
+  return id;
 };
 
-app.use(express.static(__dirname + '/../dist'));
+app.get('/api/new', (req, res) => {
+  if (Object.values(rooms).length >= MAX_ROOMS) {
+    res.status(503);
+    res.send("Maximum number of rooms exceeded.");
+  } else {
+    const roomId = createRoom();
+    res.status(201);
+    res.redirect(`/api/${roomId}`);
+  }
+});
+
+app.get('/api/:roomId', (req, res) => {
+  const id = req.params.roomId;
+  console.log("Connected to room: ", id);
+  console.log("Sending room configuration: ", rooms[id]);
+  res.json(rooms[id]);
+});
 
 const server = http.createServer(app);
 
 const wss = new WebSocket.Server({
   server: server,
-  path: '/chat'
+  path: '/ws'
 });
 
-const broadcast = (message) => {
-  Object.values(clients).forEach(c => {
+const broadcast = (room, message) => {
+  socketsForRoom(room).forEach(c => {
     c.socket.send(message);
   });
 };
 
-const sendUserList = (clear) => {
-  broadcast(JSON.stringify({
+const sendUserList = (room) => {
+  broadcast(room, JSON.stringify({
     type: msg.MSG_UPDATE_USERS,
-    message: votesWithUsernames()
+    message: votesWithUsernames(room)
   }));
 };
 
@@ -81,8 +118,12 @@ const sendUserExists = (socket) => {
   }));
 };
 
-const votesWithUsernames = () => {
-  return Object.values(clients).map(c => {
+const socketsForRoom = (room) => {
+  return Object.values(clients).filter(c => c.room === room);
+};
+
+const votesWithUsernames = (room) => {
+  return socketsForRoom(room).map(c => {
     return {
       username: c.username,
       vote: c.vote,
@@ -96,96 +137,105 @@ const votes = () => {
   return Object.values(clients).map(c => c.vote);
 };
 
-const sendResetVote = () => {
-  broadcast(JSON.stringify({
+const sendResetVote = (room) => {
+  broadcast(room, JSON.stringify({
     type: msg.MSG_RESET_VOTE
   }));
 };
 
-const sendUsernameOk = () => {
-  broadcast(JSON.stringify({
+const sendUsernameOk = (socket) => {
+  socket.send(JSON.stringify({
     type: msg.MSG_USERNAME_OK
   }));
 };
 
-const usernames = () => votesWithUsernames().map(v => v.username);
+const usernames = (room) => votesWithUsernames(room).map(v => v.username);
 
-const sendConfig = () => {
-  broadcast(JSON.stringify({
+const sendConfig = (room) => {
+  broadcast(room, JSON.stringify({
     type: msg.MSG_CONFIG,
-    message: config
+    message: rooms[room]
   }));
 };
 
 const processMsg = (message, socket) => {
   let m = JSON.parse(message);
-  if (m.type === msg.MSG_CLIENT_CONNECT) {
-    let username = m.message;
 
-    let exists = usernames().includes(username);
+  if (m.type === msg.MSG_CLIENT_CONNECT) {
+    let username = m.message.username;
+    let room = m.message.room;
+    let exists = usernames(room).includes(username);
     if (exists) {
       console.log("Username " + username + " already in use");
       sendUserExists(socket);
     } else {
-      console.log(`Client connected: ${username}`);
+      console.log(`Client connected: ${username} , room ${room}`);
       clients[socket.id] = {
         socket: socket,
-        username: username
+        username: username,
+        room: room
       };
-      sendUsernameOk();
-      sendUserList();
-      sendConfig();
+      sendUsernameOk(socket);
+      sendUserList(room);
+      sendConfig(room);
     }
   } else if (m.type === msg.MSG_CHAT) {
-    broadcast(message);
+    let room = clients[socket.id].room;
+    broadcast(room, message);
   } else if (m.type === msg.MSG_VOTE) {
+    let room = clients[socket.id].room;
     clients[socket.id] = {
       ...clients[socket.id],
       vote: m.message
     };
-    sendUserList();
+    sendUserList(room);
   } else if (m.type === msg.MSG_RESET_VOTE) {
-    Object.values(clients).forEach(c => {
+    let room = clients[socket.id].room;
+    socketsForRoom(room).forEach(c => {
       delete c.vote;
     });
-    sendResetVote();
-    sendUserList();
+    sendResetVote(room);
+    sendUserList(room);
   } else if (m.type === msg.MSG_BECOME_OBSERVER) {
+    let room = clients[socket.id].room;
     console.log(`${socket.id} observs`);
     clients[socket.id] = {
       ...clients[socket.id],
       observer: true
     };
-    sendUserList();
+    sendUserList(room);
   } else if (m.type === msg.MSG_BECOME_PARTICIPANT) {
+    let room = clients[socket.id].room;
     console.log(`${socket.id} participates`);
     clients[socket.id] = {
       ...clients[socket.id],
       observer: false
     };
-    sendUserList();
+    sendUserList(room);
   } else if (m.type === msg.MSG_REVEAL_VOTES) {
-    Object.values(clients).forEach(c => {
+    let room = clients[socket.id].room;
+    socketsForRoom(room).forEach(c => {
       if (!c.vote) {
         c.vote = "?";
       }
     });
-    sendUserList();
-  } else if (m.type === msg.MSG_HEARTBEAT) {
+    sendUserList(room);
+  } /*else if (m.type === msg.MSG_HEARTBEAT) {
     const c = clients[socket.id];
     const client_heartbeat = m.message;
     if (c && !c.client_heartbeat || c.client_heartbeat < client_heartbeat) {
       c.client_heartbeat = client_heartbeat;
     }
-  } else if (m.type === msg.MSG_UPDATE_CONFIG) {
+  }*/ else if (m.type === msg.MSG_UPDATE_CONFIG) {
+    let room = clients[socket.id].room;
     console.log("Updated config: ", m.message);
-    config.options = m.message;
-    sendConfig();
-    Object.values(clients).forEach(c => {
+    rooms[room].options = m.message;
+    sendConfig(room);
+    socketsForRoom(room).forEach(c => {
       delete c.vote;
     });
-    sendResetVote();
-    sendUserList();
+    sendResetVote(room);
+    sendUserList(room);
   }
 };
 
@@ -201,7 +251,7 @@ wss.on('connection', function connection(socket, req) {
   });
 });
 
-const heartbeat = () => {
+/*const heartbeat = () => {
   const millis = Date.now();
   broadcast(JSON.stringify({
     type: msg.MSG_HEARTBEAT,
@@ -220,10 +270,10 @@ const heartbeat = () => {
     }
   }
   sendUserList();
-};
+};*/
 
 server.listen(port, () => {
   console.log('Server started on port ' + port);
 });
 
-setInterval(heartbeat, 5000);
+//setInterval(heartbeat, 5000);

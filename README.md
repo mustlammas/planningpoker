@@ -9,6 +9,10 @@ App for playing Scrum planning poker
 - Record session time. Suggest breaks?
 - Allow recording story titles.
 - Record estimated stories and allow export.
+- Allow room owner to kick people
+
+# Technical TODO
+- Use typescript
 
 # Start webpack dev server (frontend)::
 Server: ```npm run start```

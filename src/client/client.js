@@ -16,7 +16,9 @@ import WifiIcon from '@material-ui/icons/Wifi';
 import WifiOffIcon from '@material-ui/icons/WifiOff';
 import SettingsIcon from '@material-ui/icons/Settings';
 
-import * as Msg from './messages.js';
+import {clientState} from './state.js';
+
+import * as Msg from '../shared/messages.js';
 import './style.css';
 
 import {
@@ -27,17 +29,9 @@ import {
   useRecoilValue,
 } from 'recoil';
 
-const Root = () => {
-  return (
-    <RecoilRoot>
-      <PokerPlanning />
-    </RecoilRoot>
-  );
-};
-
-const clientState = atom({
-  key: 'client',
-  default: null
+const clientsState = atom({
+  key: 'clients',
+  default: []
 });
 
 const userState = atom({
@@ -48,11 +42,6 @@ const userState = atom({
 const userSubmittedState = atom({
   key: 'user-submitted',
   default: false,
-});
-
-const clientsState = atom({
-  key: 'clients',
-  default: []
 });
 
 const votesState = atom({
@@ -79,6 +68,11 @@ const configuringState = atom({
   default: false
 });
 
+const roomState = atom({
+  key: 'room',
+  default: 'default'
+});
+
 const everyoneHasVoted = (votes) => {
   return votes
     .filter(v => !v.observer)
@@ -95,7 +89,7 @@ const sendMessage = (client, type, message) => {
   }
 };
 
-const PokerPlanning = () => {
+export const PokerPlanning = ({roomId}) => {
   const [client, setClient] = useRecoilState(clientState);
   const [clients, setClients] = useRecoilState(clientsState);
   const [votes, setVotes] = useRecoilState(votesState);
@@ -103,9 +97,11 @@ const PokerPlanning = () => {
   const [errors, setErrors] = useRecoilState(errorsState);
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
   const [config, setConfig] = useRecoilState(configState);
+  const [room, setRoom] = useRecoilState(roomState);
 
   useEffect(() => {
     setClient(new W3CWebSocket(WS_SERVER, 'echo-protocol'));
+    setRoom(roomId);
   }, []);
 
   const processMsg = (msg) => {
@@ -149,7 +145,7 @@ const PokerPlanning = () => {
     style={{ minHeight: '100vh'}}
     className="container">
     <Title/>
-    <WelcomeScreen/>
+    <WelcomeScreen roomId={roomId}/>
     <Poker/>
     <Result/>
     <Errors/>
@@ -160,6 +156,7 @@ const PokerPlanning = () => {
 const ConfigModal = ({config}) => {
   const [configuring, setConfiguring] = useRecoilState(configuringState);
   const [client, setClient] = useRecoilState(clientState);
+  const [room, setRoom] = useRecoilState(roomState);
 
   const [options, setOptions] = useState([...config.options, {text: "", value: ""}]);
 
@@ -290,6 +287,7 @@ const Poker = () => {
   const [votes, setVotes] = useRecoilState(votesState);
   const config = useRecoilValue(configState);
   const [configuring, setConfiguring] = useRecoilState(configuringState);
+  const [room, setRoom] = useRecoilState(roomState);
 
   const sendVote = (vote) => sendMessage(client, Msg.MSG_VOTE, vote);
   const resetVotes = () => sendMessage(client, Msg.MSG_RESET_VOTE);
@@ -335,6 +333,10 @@ const Poker = () => {
   const diffingUsers = usersWithDiffingVotes();
   const myVote = votes.find(v => v.username === user);
   const observer = myVote && myVote.observer;
+
+console.log("submitted: ", submitted);
+console.log("config.options: ", config);
+  console.log("Drawing user table: ", votes);
 
   return submitted && config.options ? <Box style={{minWidth: "700px"}}>
     <Grid container justify="center">
@@ -423,10 +425,13 @@ const Title = () => {
   return <h1>Planning Poker</h1>;
 };
 
-const WelcomeScreen = () => {
+export const WelcomeScreen = ({roomId}) => {
   const [client, setClient] = useRecoilState(clientState);
   const [user, setUser] = useRecoilState(userState);
-  const sendJoinMessage = () => sendMessage(client, Msg.MSG_CLIENT_CONNECT, user);
+  const sendJoinMessage = () => sendMessage(client, Msg.MSG_CLIENT_CONNECT, {
+    username: user,
+    room: roomId
+  });
   const [submitted] = useRecoilState(userSubmittedState);
   const onEnter = (e) => {
     if(e.keyCode == 13) sendJoinMessage();
@@ -434,6 +439,7 @@ const WelcomeScreen = () => {
 
   return submitted ? null :
     <div>
+      <div>{`Join room #${roomId}`}</div>
       <TextField onKeyDown={onEnter} autoFocus label="Name" variant="standard" type="text" value={user} onChange={(e) => setUser(e.target.value)}/>
       <Box ml={1} display="inline">
         <Button color="primary" variant="contained" size="large" onClick={() => {
@@ -442,5 +448,3 @@ const WelcomeScreen = () => {
       </Box>
     </div>;
 }
-
-ReactDOM.render(<Root/>, document.getElementById('root'));

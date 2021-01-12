@@ -5,7 +5,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
   entry: {
     app: [
-      './src/client.js'
+      './src/client/app.js'
     ]
   },
   module: {
@@ -22,7 +22,7 @@ module.exports = {
     new HtmlWebpackPlugin({
       filename: 'index.html',
       inject: true,
-      template: './src/index.html'
+      template: './src/client/index.html'
     })
   ],
   output: {
