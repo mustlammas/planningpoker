@@ -79,7 +79,6 @@ app.get('/api/new', (req, res) => {
 
 app.get('/api/:roomId', (req, res) => {
   const id = req.params.roomId;
-  console.log("Connected to room: ", id);
   res.json(rooms[id]);
 });
 
@@ -189,7 +188,7 @@ const processMsg = (message, socket) => {
     sendUserList(room);
   } else if (m.type === msg.MSG_BECOME_OBSERVER) {
     let room = clients[socket.id].room;
-    console.log(`${socket.id} observs`);
+    console.log(`${socket.id} observes`);
     clients[socket.id] = {
       ...clients[socket.id],
       observer: true
@@ -231,8 +230,9 @@ wss.on('connection', function connection(socket, req) {
   });
   socket.on('close', function(reasonCode, description) {
     console.log('Client ' + socket.id + ' disconnected.');
+    const room = clients[socket.id].room;
     delete clients[socket.id];
-    sendUserList();
+    sendUserList(room);
   });
 });
 
