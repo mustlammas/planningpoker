@@ -34,13 +34,11 @@ import {
 const App = () => {
   return <Router>
     <Switch>
-      <Route exact path="/">
-        <CreateRoom/>
-      </Route>
-    </Switch>
-    <Switch>
-      <Route path="/:id">
+      <Route path="/room/:id">
         <Room/>
+      </Route>
+      <Route path="/">
+        <CreateRoom/>
       </Route>
     </Switch>
   </Router>;
@@ -53,7 +51,7 @@ const CreateRoom = () => {
     fetch(`${SERVER}/api/new`, {redirect: 'follow'})
      .then(res => res.json())
      .then(room => {
-       history.push(`/${room.id}`);
+       history.push(`/room/${room.id}`);
      });
   };
 
@@ -61,6 +59,5 @@ const CreateRoom = () => {
     <Button color="primary" variant="contained" size="large" onClick={createRoom}>Create room</Button>
   </Box>
 };
-
 
 ReactDOM.render(<App/>, document.getElementById('root'));

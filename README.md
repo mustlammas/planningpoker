@@ -2,8 +2,7 @@
 App for playing Scrum planning poker
 
 # TODO
-- Create "rooms" so that you can have more than one poker game at a time.
-- Allow renaming one's own name.
+
 - Record average ticket size.
 - Record median ticket size.
 - Record session time. Suggest breaks?
@@ -13,6 +12,7 @@ App for playing Scrum planning poker
 
 # Technical TODO
 - Use typescript
+- Use Socket.io
 
 # Start webpack dev server (frontend)::
 Server: ```npm run start```

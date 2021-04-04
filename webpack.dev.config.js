@@ -22,7 +22,10 @@ module.exports = merge(common, {
   ],
   devtool: 'inline-source-map',
   devServer: {
-    contentBase: './dist',
+    contentBase: path.resolve(__dirname, './dist'),
+    historyApiFallback: {
+      index: '/'
+    },
     hot: true,
     headers: {
       "Access-Control-Allow-Origin": "*",
