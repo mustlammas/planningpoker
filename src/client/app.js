@@ -55,9 +55,18 @@ const CreateRoom = () => {
      });
   };
 
-  return <Box ml={1} display="inline">
-    <Button color="primary" variant="contained" size="large" onClick={createRoom}>Create room</Button>
-  </Box>
+  return <Grid
+      container
+      spacing={0}
+      direction="column"
+      alignItems="center"
+      justify="center"
+      style={{ minHeight: '100vh'}}
+      className="container">
+      <Box ml={1} display="inline">
+        <Button color="primary" variant="contained" size="large" onClick={createRoom}>Create room</Button>
+      </Box>
+    </Grid>;
 };
 
 ReactDOM.render(<App/>, document.getElementById('root'));
