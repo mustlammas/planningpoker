@@ -439,7 +439,6 @@ export const WelcomeScreen = ({roomId}) => {
 
   return submitted ? null :
     <div>
-      <div>{`Join room #${roomId}`}</div>
       <TextField onKeyDown={onEnter} autoFocus label="Name" variant="standard" type="text" value={user} onChange={(e) => setUser(e.target.value)}/>
       <Box ml={1} display="inline">
         <Button color="primary" variant="contained" size="large" onClick={() => {
