@@ -84,7 +84,7 @@ app.get('/api/:roomId', (req, res) => {
 });
 
 app.get('*', function(req, res) {
-    res.sendFile(__dirname + '/../dist');
+    res.sendFile(path.resolve('dist/index.html'));
 });
 
 const server = http.createServer(app);
