@@ -2,6 +2,7 @@ const http = require('http');
 const express = require('express');
 const WebSocket = require('ws');
 const crypto = require("crypto");
+const path = require('path');
 
 const port = 2222;
 const app = express();
@@ -80,6 +81,10 @@ app.get('/api/new', (req, res) => {
 app.get('/api/:roomId', (req, res) => {
   const id = req.params.roomId;
   res.json(rooms[id]);
+});
+
+app.get('*', function(req, res) {
+    res.sendFile(path.join(__dirname + '/index.html'));
 });
 
 const server = http.createServer(app);
@@ -230,7 +235,8 @@ wss.on('connection', function connection(socket, req) {
   });
   socket.on('close', function(reasonCode, description) {
     console.log('Client ' + socket.id + ' disconnected.');
-    const room = clients[socket.id].room;
+    const client = clients[socket.id];
+    const room = client && client.room;
     delete clients[socket.id];
     sendUserList(room);
   });
