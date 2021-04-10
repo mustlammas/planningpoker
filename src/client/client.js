@@ -15,6 +15,7 @@ import CheckIcon from '@material-ui/icons/Check';
 import WifiIcon from '@material-ui/icons/Wifi';
 import WifiOffIcon from '@material-ui/icons/WifiOff';
 import SettingsIcon from '@material-ui/icons/Settings';
+import ViewColumnIcon from '@material-ui/icons/ViewColumn';
 
 import {clientState} from './state.js';
 
@@ -135,16 +136,14 @@ export const PokerPlanning = ({roomId}) => {
   }
 
   return <div>
-  <Config/>
   <Grid
     container
     spacing={0}
     direction="column"
     alignItems="center"
     justify="center"
-    style={{ minHeight: '100vh'}}
+    style={{ minHeight: '50vh'}}
     className="container">
-    <Title/>
     <WelcomeScreen roomId={roomId}/>
     <Poker/>
     <Result/>
@@ -264,12 +263,14 @@ const Config = () => {
   const [configuring, setConfiguring] = useRecoilState(configuringState);
   const [config, setConfig] = useRecoilState(configState);
 
-  return submitted && <div>
-    <Button style={{color: "#aaa"}} size="small" onClick={() => setConfiguring(true)}><SettingsIcon/> Configure</Button>
+  return submitted && <>
+    <Button onClick={() => setConfiguring(true)} size="large">
+      <SettingsIcon color="disabled"/>
+    </Button>
     {
       configuring && <ConfigModal config={config}/>
     }
-  </div>;
+  </>;
 };
 
 const Errors = () => {
@@ -334,11 +335,7 @@ const Poker = () => {
   const myVote = votes.find(v => v.username === user);
   const observer = myVote && myVote.observer;
 
-console.log("submitted: ", submitted);
-console.log("config.options: ", config);
-  console.log("Drawing user table: ", votes);
-
-  return submitted && config.options ? <Box style={{minWidth: "700px"}}>
+  return submitted && config.options ? <Box>
     <Grid container justify="center">
       {config.options.map(option => {
         let color = selectedPoints === option.value ? "secondary" : "primary";
@@ -349,6 +346,9 @@ console.log("config.options: ", config);
           }}>{option.text}</Button>
         </Box>;
       })}
+      <Box p={1} display="inline">
+        <Config/>
+      </Box>
     </Grid>
     <Box p={2} display="flex">
       <Box flexGrow={1}>
@@ -419,10 +419,6 @@ const Result = () => {
   } else {
     return <h1>Waiting for votes...</h1>;
   }
-};
-
-const Title = () => {
-  return <h1>Planning Poker</h1>;
 };
 
 export const WelcomeScreen = ({roomId}) => {

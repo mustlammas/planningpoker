@@ -57,7 +57,7 @@ const MAX_ROOMS = 10;
 const rooms = {};
 
 const createRoom = () => {
-  const id = crypto.randomBytes(10).toString('hex');
+  const id = crypto.randomBytes(5).toString('hex');
   console.log("New room: ", id);
   rooms[id] = {
     id: id,
