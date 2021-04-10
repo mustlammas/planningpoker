@@ -358,7 +358,7 @@ const Poker = () => {
       {observer && <Button variant="contained" onClick={() => becomeParticipant()}>Participate</Button>}
       {!observer && <Button variant="contained" onClick={() => becomeObserver()}>Observe</Button>}
     </Box>
-    <Box p={2} width={1/3} mx="auto">
+    <Box p={2} width="300px" mx="auto">
       <TableContainer>
         <Table size="small" aria-label="a table">
           <TableBody>
