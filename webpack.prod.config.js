@@ -21,7 +21,7 @@ module.exports = merge(common, {
     }),
     new webpack.DefinePlugin({
       SERVER: "'http://34.90.238.42:2222'",
-      WS_SERVER: "'ws://34.90.238.42:2222/ws'"
+      WS_SERVER: "'http://34.90.238.42:2222'"
     })
   ]
 });
