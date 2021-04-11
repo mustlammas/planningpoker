@@ -17,7 +17,7 @@ module.exports = merge(common, {
   plugins: [
     new webpack.DefinePlugin({
       SERVER: "'http://localhost:8080'",
-      WS_SERVER: "'ws://localhost:2222/ws'"
+      WS_SERVER: "'http://localhost:2222'"
     })
   ],
   devtool: 'inline-source-map',

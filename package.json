@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "planningpoker",
   "dependencies": {
     "@material-ui/core": "^4.11.0",
@@ -9,8 +9,9 @@
     "react-dom": "^16.13.1",
     "react-router-dom": "^5.2.0",
     "recoil": "0.0.10",
+    "socket.io": "^4.0.1",
+    "socket.io-client": "^4.0.1",
     "uuid": "^8.3.0",
-    "websocket": "^1.0.31",
     "ws": "^7.3.1"
   },
   "devDependencies": {

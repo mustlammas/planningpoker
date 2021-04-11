@@ -12,7 +12,6 @@ App for playing Scrum planning poker
 
 # Technical TODO
 - Use typescript
-- Use Socket.io
 - Drop clients with a broken/unstable connection
 - Add tests for server and client
 - Set up a build pipeline

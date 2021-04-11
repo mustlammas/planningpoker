@@ -2,7 +2,6 @@
 
 import React, {useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
-import {w3cwebsocket as W3CWebSocket} from 'websocket';
 import { makeStyles } from '@material-ui/core/styles';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
@@ -25,10 +24,16 @@ import SettingsIcon from '@material-ui/icons/Settings';
 import GitHubIcon from '@material-ui/icons/GitHub';
 
 import {Room} from './room.js';
-import {clientState} from './state.js';
-
 import * as Msg from '../shared/messages.js';
 import './style.css';
+
+import {
+  RecoilRoot,
+  atom,
+  selector,
+  useRecoilState,
+  useRecoilValue,
+} from 'recoil';
 
 import {
   BrowserRouter as Router,
@@ -57,7 +62,7 @@ const useStyles = makeStyles((theme) => ({
 
 const App = () => {
   const classes = useStyles();
-  return <>
+  return <RecoilRoot>
     <AppBar position="static">
       <Toolbar>
         <Typography variant="h6" className={classes.title}>
@@ -78,7 +83,7 @@ const App = () => {
         </Route>
       </Switch>
     </Router>
-  </>;
+  </RecoilRoot>;
 };
 
 const CreateRoom = () => {

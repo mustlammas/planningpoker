@@ -2,7 +2,7 @@
 
 import React, {useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
-import {w3cwebsocket as W3CWebSocket} from 'websocket';
+import { io } from "socket.io-client";
 import { Box, Button, Chip, Divider, Grid, List, ListItem, TextField, Modal } from '@material-ui/core';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
@@ -16,8 +16,6 @@ import WifiIcon from '@material-ui/icons/Wifi';
 import WifiOffIcon from '@material-ui/icons/WifiOff';
 import SettingsIcon from '@material-ui/icons/Settings';
 import ViewColumnIcon from '@material-ui/icons/ViewColumn';
-
-import {clientState} from './state.js';
 
 import * as Msg from '../shared/messages.js';
 import './style.css';
@@ -69,11 +67,6 @@ const configuringState = atom({
   default: false
 });
 
-const roomState = atom({
-  key: 'room',
-  default: 'default'
-});
-
 const everyoneHasVoted = (votes) => {
   return votes
     .filter(v => !v.observer)
@@ -82,58 +75,50 @@ const everyoneHasVoted = (votes) => {
 };
 
 const sendMessage = (client, type, message) => {
-  if (client && client.readyState === client.OPEN) {
-    client.send(JSON.stringify({
-      type: type,
-      message: message
-    }));
+  if (client) {
+    client.emit(type, JSON.stringify(message));
   }
 };
 
 export const PokerPlanning = ({roomId}) => {
-  const [client, setClient] = useRecoilState(clientState);
   const [clients, setClients] = useRecoilState(clientsState);
   const [votes, setVotes] = useRecoilState(votesState);
   const [selectedPoints, setSelectedPoints] = useRecoilState(selectedPointsState);
   const [errors, setErrors] = useRecoilState(errorsState);
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
   const [config, setConfig] = useRecoilState(configState);
-  const [room, setRoom] = useRecoilState(roomState);
+  const [client, setClient] = useState();
 
   useEffect(() => {
-    setClient(new W3CWebSocket(WS_SERVER, 'echo-protocol'));
-    setRoom(roomId);
-  }, []);
+    const socket = io(WS_SERVER);
 
-  const processMsg = (msg) => {
-    if (msg.type === Msg.MSG_UPDATE_USERS) {
-      setVotes(msg.message);
-    } else if (msg.type === Msg.MSG_RESET_VOTE) {
+    socket.on(Msg.UPDATE_USERS, (msg) => {
+      console.log(Msg.UPDATE_USERS);
+      setVotes(JSON.parse(msg));
+    });
+    socket.on(Msg.RESET_VOTE, (msg) => {
+      console.log(Msg.RESET_VOTE);
       setSelectedPoints(null);
-    } else if (msg.type === Msg.MSG_USER_EXISTS) {
+    });
+    socket.on(Msg.USER_EXISTS, (msg) => {
+      console.log(Msg.USER_EXISTS);
       const e = [...errors];
       e.push("Name is in use. Pick another.");
       setErrors(e);
-    } else if (msg.type === Msg.MSG_USERNAME_OK) {
+    });
+    socket.on(Msg.USERNAME_OK, (msg) => {
+      console.log(Msg.USERNAME_OK);
       setErrors([]);
       setSubmitted(true);
-    } else if (msg.type === Msg.MSG_HEARTBEAT) {
-      sendMessage(client, Msg.MSG_HEARTBEAT, msg.message);
-    } else if (msg.type === Msg.MSG_CONFIG) {
-      console.log("Received config: ", msg.message);
-      setConfig(msg.message);
-    }
-  };
+    });
+    socket.on(Msg.CONFIG, (msg) => {
+      console.log(Msg.CONFIG);
+      setConfig(JSON.parse(msg));
+    });
 
-  if (client) {
-    client.onmessage = (msg) => {
-      try {
-        processMsg(JSON.parse(msg.data));
-      } catch(e) {
-        console.warn(e);
-      }
-    };
-  }
+    setClient(socket);
+    return () => socket.disconnect();
+  }, [WS_SERVER]);
 
   return <div>
   <Grid
@@ -144,19 +129,16 @@ export const PokerPlanning = ({roomId}) => {
     justify="center"
     style={{ minHeight: '50vh'}}
     className="container">
-    <WelcomeScreen roomId={roomId}/>
-    <Poker/>
+    <WelcomeScreen roomId={roomId} client={client}/>
+    <Poker client={client}/>
     <Result/>
     <Errors/>
   </Grid>
   </div>;
 };
 
-const ConfigModal = ({config}) => {
+const ConfigModal = ({config, client}) => {
   const [configuring, setConfiguring] = useRecoilState(configuringState);
-  const [client, setClient] = useRecoilState(clientState);
-  const [room, setRoom] = useRecoilState(roomState);
-
   const [options, setOptions] = useState([...config.options, {text: "", value: ""}]);
 
   const onSave = () => {
@@ -167,7 +149,7 @@ const ConfigModal = ({config}) => {
         value: value
       };
     });
-    sendMessage(client, Msg.MSG_UPDATE_CONFIG, filtered);
+    sendMessage(client, Msg.UPDATE_CONFIG, filtered);
     setConfiguring(false);
   };
 
@@ -258,7 +240,7 @@ const ConfigModal = ({config}) => {
   </Modal>;
 };
 
-const Config = () => {
+const Config = ({client}) => {
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
   const [configuring, setConfiguring] = useRecoilState(configuringState);
   const [config, setConfig] = useRecoilState(configState);
@@ -268,7 +250,7 @@ const Config = () => {
       <SettingsIcon color="disabled"/>
     </Button>
     {
-      configuring && <ConfigModal config={config}/>
+      configuring && <ConfigModal config={config} client={client}/>
     }
   </>;
 };
@@ -280,24 +262,28 @@ const Errors = () => {
   </Box>;
 };
 
-const Poker = () => {
-  const [client, setClient] = useRecoilState(clientState);
+const Poker = ({client}) => {
   const [user, setUser] = useRecoilState(userState);
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
   const [selectedPoints, setSelectedPoints] = useRecoilState(selectedPointsState);
   const [votes, setVotes] = useRecoilState(votesState);
   const config = useRecoilValue(configState);
   const [configuring, setConfiguring] = useRecoilState(configuringState);
-  const [room, setRoom] = useRecoilState(roomState);
 
-  const sendVote = (vote) => sendMessage(client, Msg.MSG_VOTE, vote);
-  const resetVotes = () => sendMessage(client, Msg.MSG_RESET_VOTE);
-  const becomeObserver = () => sendMessage(client, Msg.MSG_BECOME_OBSERVER);
-  const becomeParticipant = () => sendMessage(client, Msg.MSG_BECOME_PARTICIPANT);
-  const revealVotes = () => sendMessage(client, Msg.MSG_REVEAL_VOTES);
+  const sendVote = (vote) => sendMessage(client, Msg.VOTE, {vote: vote});
+  const resetVotes = () => {
+    setSelectedPoints(undefined);
+    sendMessage(client, Msg.RESET_VOTE);
+  };
+  const becomeObserver = () => {
+    setSelectedPoints(undefined);
+    sendMessage(client, Msg.BECOME_OBSERVER);
+  };
+  const becomeParticipant = () => sendMessage(client, Msg.BECOME_PARTICIPANT);
+  const revealVotes = () => sendMessage(client, Msg.REVEAL_VOTES);
 
   const usersWithDiffingVotes = () => {
-    if (everyoneHasVoted(votes) && config.options) {
+    if (everyoneHasVoted(votes) && config && config.options) {
       const numericVotes = votes
         .filter(v => !v.observer)
         .map(v => parseInt(v.vote))
@@ -335,7 +321,7 @@ const Poker = () => {
   const myVote = votes.find(v => v.username === user);
   const observer = myVote && myVote.observer;
 
-  return submitted && config.options ? <Box>
+  return submitted && config && config.options ? <Box>
     <Grid container justify="center">
       {config.options.map(option => {
         let color = selectedPoints === option.value ? "secondary" : "primary";
@@ -347,7 +333,7 @@ const Poker = () => {
         </Box>;
       })}
       <Box p={1} display="inline">
-        <Config/>
+        <Config client={client}/>
       </Box>
     </Grid>
     <Box p={2} display="flex">
@@ -421,10 +407,9 @@ const Result = () => {
   }
 };
 
-export const WelcomeScreen = ({roomId}) => {
-  const [client, setClient] = useRecoilState(clientState);
+export const WelcomeScreen = ({roomId, client}) => {
   const [user, setUser] = useRecoilState(userState);
-  const sendJoinMessage = () => sendMessage(client, Msg.MSG_CLIENT_CONNECT, {
+  const sendJoinMessage = () => sendMessage(client, Msg.JOIN, {
     username: user,
     room: roomId
   });

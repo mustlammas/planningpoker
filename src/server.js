@@ -6,8 +6,6 @@ const path = require('path');
 
 const port = 2222;
 const app = express();
-const devServerEnabled = true;
-const clients = {};
 const msg = require("./shared/messages.js");
 const {
   v4: uuidv4
@@ -53,7 +51,7 @@ const defaultOptions = [
 
 app.use(express.static(__dirname + '/../dist'));
 
-const MAX_ROOMS = 10;
+const MAX_ROOMS = 20;
 const rooms = {};
 
 const createRoom = () => {
@@ -70,7 +68,10 @@ const createRoom = () => {
 app.get('/api/new', (req, res) => {
   if (Object.values(rooms).length >= MAX_ROOMS) {
     res.status(503);
-    res.send("Maximum number of rooms exceeded.");
+    res.send(JSON.stringify({
+      error: 503,
+      message: "Maximum number of rooms exceeded"
+    }));
   } else {
     const roomId = createRoom();
     res.status(201);
@@ -84,163 +85,113 @@ app.get('/api/:roomId', (req, res) => {
 });
 
 app.get('*', function(req, res) {
-    res.sendFile(path.resolve('dist/index.html'));
+  console.log("Unhandled request: ", req.url);
+  res.sendFile(path.resolve('dist/index.html'));
 });
 
 const server = http.createServer(app);
 
-const wss = new WebSocket.Server({
-  server: server,
-  path: '/ws'
+const options = {
+  cors: {
+    origin: "http://localhost:8080",
+    methods: ["GET, POST, PUT, DELETE, PATCH, OPTIONS"]
+  }
+};
+
+const io = require('socket.io')(server, options);
+
+io.on('connect', (socket) => {
+  console.log('Client ' + socket.id + ' connected');
+
+  socket.on(msg.JOIN, message => {
+    let m = JSON.parse(message);
+    let username = m.username;
+    let room = m.room;
+    socket.join(room);
+    console.log(`User ${username} joined room ${room}`);
+    socket.username = username;
+    sendMessage(socket, room, msg.USERNAME_OK);
+    sendUserList(room);
+    sendConfig(room);
+  });
+  socket.on(msg.VOTE, message => {
+    const m = JSON.parse(message);
+    const room = [...socket.rooms][1];
+    socket.vote = m.vote;
+    sendUserList(room);
+  });
+  socket.on(msg.RESET_VOTE, message => {
+    const m = JSON.parse(message);
+    const room = [...socket.rooms][1];
+    resetVotes(room);
+  });
+  socket.on(msg.BECOME_OBSERVER, message => {
+    socket.observer = true;
+    delete socket.vote;
+    const room = [...socket.rooms][1];
+    sendUserList(room);
+  });
+  socket.on(msg.BECOME_PARTICIPANT, message => {
+    delete socket.observer;
+    const room = [...socket.rooms][1];
+    sendUserList(room);
+  });
+  socket.on(msg.REVEAL_VOTES, message => {
+    const room = [...socket.rooms][1];
+    revealVotes(room);
+    sendUserList(room);
+  });
+  socket.on(msg.UPDATE_CONFIG, message => {
+    const room = [...socket.rooms][1];
+    rooms[room].options = JSON.parse(message);
+    sendConfig(room);
+    resetVotes(room);
+  });
+  socket.on('disconnect', () => {
+    console.log('Client ' + socket.id + ' disconnected');
+    const room = [...socket.rooms][1];
+    sendUserList(socket, room);
+  });
 });
 
-const broadcast = (room, message) => {
-  socketsForRoom(room).forEach(c => {
-    c.socket.send(message);
+const sendMessage = (socket, room, type, msg) => {
+  let message = msg && JSON.stringify(msg);
+  socket.emit(type, message);
+};
+
+const revealVotes = (room) => {
+  io.of("/").in(room).fetchSockets().then(sockets => {
+    sockets.forEach(s => {
+      s.vote = s.vote || "?";
+    });
   });
 };
 
 const sendUserList = (room) => {
-  broadcast(room, JSON.stringify({
-    type: msg.MSG_UPDATE_USERS,
-    message: votesWithUsernames(room)
-  }));
-};
-
-const sendUserExists = (socket) => {
-  socket.send(JSON.stringify({
-    type: msg.MSG_USER_EXISTS
-  }));
-};
-
-const socketsForRoom = (room) => {
-  return Object.values(clients).filter(c => c.room === room);
-};
-
-const votesWithUsernames = (room) => {
-  return socketsForRoom(room).map(c => {
-    return {
-      username: c.username,
-      vote: c.vote,
-      observer: c.observer,
-      connection_broken: c.connection_broken
-    };
+  io.of("/").in(room).fetchSockets().then(sockets => {
+    const votes = sockets.map(s => {
+      return {
+        username: s.username,
+        vote: s.vote,
+        observer: s.observer
+      };
+    });
+    io.in(room).emit(msg.UPDATE_USERS, JSON.stringify(votes));
   });
 };
 
-const votes = () => {
-  return Object.values(clients).map(c => c.vote);
+const resetVotes = (room) => {
+  io.of("/").in(room).fetchSockets().then(sockets => {
+    sockets.forEach(s => {
+      delete s.vote;
+    });
+    sendUserList(room);
+  });
 };
-
-const sendResetVote = (room) => {
-  broadcast(room, JSON.stringify({
-    type: msg.MSG_RESET_VOTE
-  }));
-};
-
-const sendUsernameOk = (socket) => {
-  socket.send(JSON.stringify({
-    type: msg.MSG_USERNAME_OK
-  }));
-};
-
-const usernames = (room) => votesWithUsernames(room).map(v => v.username);
 
 const sendConfig = (room) => {
-  broadcast(room, JSON.stringify({
-    type: msg.MSG_CONFIG,
-    message: rooms[room]
-  }));
+  io.in(room).emit(msg.CONFIG, JSON.stringify(rooms[room]));
 };
-
-const processMsg = (message, socket) => {
-  let m = JSON.parse(message);
-
-  if (m.type === msg.MSG_CLIENT_CONNECT) {
-    let username = m.message.username;
-    let room = m.message.room;
-    let exists = usernames(room).includes(username);
-    if (exists) {
-      console.log("Username " + username + " already in use");
-      sendUserExists(socket);
-    } else {
-      console.log(`Client connected: ${username} , room ${room}`);
-      clients[socket.id] = {
-        socket: socket,
-        username: username,
-        room: room
-      };
-      sendUsernameOk(socket);
-      sendUserList(room);
-      sendConfig(room);
-    }
-  } else if (m.type === msg.MSG_CHAT) {
-    let room = clients[socket.id].room;
-    broadcast(room, message);
-  } else if (m.type === msg.MSG_VOTE) {
-    let room = clients[socket.id].room;
-    clients[socket.id] = {
-      ...clients[socket.id],
-      vote: m.message
-    };
-    sendUserList(room);
-  } else if (m.type === msg.MSG_RESET_VOTE) {
-    let room = clients[socket.id].room;
-    socketsForRoom(room).forEach(c => {
-      delete c.vote;
-    });
-    sendResetVote(room);
-    sendUserList(room);
-  } else if (m.type === msg.MSG_BECOME_OBSERVER) {
-    let room = clients[socket.id].room;
-    console.log(`${socket.id} observes`);
-    clients[socket.id] = {
-      ...clients[socket.id],
-      observer: true
-    };
-    sendUserList(room);
-  } else if (m.type === msg.MSG_BECOME_PARTICIPANT) {
-    let room = clients[socket.id].room;
-    console.log(`${socket.id} participates`);
-    clients[socket.id] = {
-      ...clients[socket.id],
-      observer: false
-    };
-    sendUserList(room);
-  } else if (m.type === msg.MSG_REVEAL_VOTES) {
-    let room = clients[socket.id].room;
-    socketsForRoom(room).forEach(c => {
-      if (!c.vote) {
-        c.vote = "?";
-      }
-    });
-    sendUserList(room);
-  } else if (m.type === msg.MSG_UPDATE_CONFIG) {
-    let room = clients[socket.id].room;
-    console.log("Updated config: ", m.message);
-    rooms[room].options = m.message;
-    sendConfig(room);
-    socketsForRoom(room).forEach(c => {
-      delete c.vote;
-    });
-    sendResetVote(room);
-    sendUserList(room);
-  }
-};
-
-wss.on('connection', function connection(socket, req) {
-  socket.id = uuidv4();
-  socket.on('message', function incoming(message) {
-    processMsg(message, socket);
-  });
-  socket.on('close', function(reasonCode, description) {
-    console.log('Client ' + socket.id + ' disconnected.');
-    const client = clients[socket.id];
-    const room = client && client.room;
-    delete clients[socket.id];
-    sendUserList(room);
-  });
-});
 
 server.listen(port, () => {
   console.log('Server started on port ' + port);
