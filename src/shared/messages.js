@@ -9,3 +9,4 @@ exports.USERNAME_OK = "USERNAME_OK";
 exports.REVEAL_VOTES = "REVEAL_VOTES";
 exports.CONFIG = "CONFIG";
 exports.UPDATE_CONFIG = "UPDATE_CONFIG";
+exports.ERROR = "ERROR";

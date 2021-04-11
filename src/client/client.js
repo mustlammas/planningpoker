@@ -21,9 +21,7 @@ import * as Msg from '../shared/messages.js';
 import './style.css';
 
 import {
-  RecoilRoot,
   atom,
-  selector,
   useRecoilState,
   useRecoilValue,
 } from 'recoil';
@@ -92,13 +90,19 @@ export const PokerPlanning = ({roomId}) => {
   useEffect(() => {
     const socket = io(WS_SERVER);
 
+    socket.on(Msg.ERROR, (msg) => {
+      const e = JSON.parse(msg);
+      console.log("Error: ", e);
+      setErrors([e.error]);
+    });
     socket.on(Msg.UPDATE_USERS, (msg) => {
       console.log(Msg.UPDATE_USERS);
-      setVotes(JSON.parse(msg));
+      const votes = JSON.parse(msg);
+      setVotes(votes);
     });
     socket.on(Msg.RESET_VOTE, (msg) => {
       console.log(Msg.RESET_VOTE);
-      setSelectedPoints(null);
+      setSelectedPoints(undefined);
     });
     socket.on(Msg.USER_EXISTS, (msg) => {
       console.log(Msg.USER_EXISTS);

@@ -81,7 +81,13 @@ app.get('/api/new', (req, res) => {
 
 app.get('/api/:roomId', (req, res) => {
   const id = req.params.roomId;
-  res.json(rooms[id]);
+  const room = rooms[id];
+  if (room) {
+    res.json(room);
+  } else {
+    console.log("Unknown room: ", req.url);
+    res.sendFile(path.resolve('dist/index.html'));
+  }
 });
 
 app.get('*', function(req, res) {
@@ -107,12 +113,19 @@ io.on('connect', (socket) => {
     let m = JSON.parse(message);
     let username = m.username;
     let room = m.room;
-    socket.join(room);
-    console.log(`User ${username} joined room ${room}`);
-    socket.username = username;
-    sendMessage(socket, room, msg.USERNAME_OK);
-    sendUserList(room);
-    sendConfig(room);
+    let existingRoom = rooms[room];
+    if (existingRoom) {
+      socket.join(room);
+      console.log(`User ${username} joined room ${room}`);
+      socket.username = username;
+      sendMessage(socket, msg.USERNAME_OK, {
+        username: username
+      });
+      sendUserList(room);
+      sendConfig(room);
+    } else {
+      sendError(socket, `Room ${room} does not exist.`);
+    }
   });
   socket.on(msg.VOTE, message => {
     const m = JSON.parse(message);
@@ -154,7 +167,13 @@ io.on('connect', (socket) => {
   });
 });
 
-const sendMessage = (socket, room, type, msg) => {
+const sendError = (socket, message) => {
+  socket.emit(msg.ERROR, JSON.stringify({
+    error: message
+  }));
+};
+
+const sendMessage = (socket, type, msg) => {
   let message = msg && JSON.stringify(msg);
   socket.emit(type, message);
 };
@@ -186,6 +205,7 @@ const resetVotes = (room) => {
       delete s.vote;
     });
     sendUserList(room);
+    io.in(room).emit(msg.RESET_VOTE);
   });
 };
 
