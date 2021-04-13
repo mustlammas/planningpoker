@@ -10,3 +10,4 @@ exports.REVEAL_VOTES = "REVEAL_VOTES";
 exports.CONFIG = "CONFIG";
 exports.UPDATE_CONFIG = "UPDATE_CONFIG";
 exports.ERROR = "ERROR";
+exports.ROOM_REMOVED = "ROOM_REMOVED";

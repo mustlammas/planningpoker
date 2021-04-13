@@ -52,6 +52,8 @@ const defaultOptions = [
 app.use(express.static(__dirname + '/../dist'));
 
 const MAX_ROOMS = 20;
+const IDLE_ROOM_CHECK_INTERVAL_MINUTES = 60;
+const ROOM_MAX_IDLE_TIME_MINUTES = 120;
 const rooms = {};
 
 const createRoom = () => {
@@ -60,7 +62,8 @@ const createRoom = () => {
   rooms[id] = {
     id: id,
     name: `Room ${id}`,
-    options: defaultOptions
+    options: defaultOptions,
+    lastInteraction: Date.now()
   };
   return id;
 };
@@ -78,6 +81,10 @@ app.get('/api/new', (req, res) => {
     res.redirect(`/api/${roomId}`);
   }
 });
+
+const touch = (room) => {
+  rooms[room].lastInteraction = Date.now();
+};
 
 app.get('/api/:roomId', (req, res) => {
   const id = req.params.roomId;
@@ -123,6 +130,7 @@ io.on('connect', (socket) => {
       });
       sendUserList(room);
       sendConfig(room);
+      touch(room);
     } else {
       sendError(socket, `Room ${room} does not exist.`);
     }
@@ -132,36 +140,45 @@ io.on('connect', (socket) => {
     const room = [...socket.rooms][1];
     socket.vote = m.vote;
     sendUserList(room);
+    touch(room);
   });
   socket.on(msg.RESET_VOTE, message => {
     const m = JSON.parse(message);
     const room = [...socket.rooms][1];
     resetVotes(room);
+    touch(room);
   });
   socket.on(msg.BECOME_OBSERVER, message => {
     socket.observer = true;
     delete socket.vote;
     const room = [...socket.rooms][1];
     sendUserList(room);
+    touch(room);
   });
   socket.on(msg.BECOME_PARTICIPANT, message => {
     delete socket.observer;
     const room = [...socket.rooms][1];
     sendUserList(room);
+    touch(room);
   });
   socket.on(msg.REVEAL_VOTES, message => {
     const room = [...socket.rooms][1];
     revealVotes(room);
     sendUserList(room);
+    touch(room);
   });
   socket.on(msg.UPDATE_CONFIG, message => {
     const room = [...socket.rooms][1];
     rooms[room].options = JSON.parse(message);
     sendConfig(room);
     resetVotes(room);
+    touch(room);
   });
   socket.on('disconnect', () => {
     console.log('Client ' + socket.id + ' disconnected');
+    if ([...socket.rooms].length < 2) {
+      return;
+    }
     const room = [...socket.rooms][1];
     sendUserList(socket, room);
   });
@@ -216,3 +233,28 @@ const sendConfig = (room) => {
 server.listen(port, () => {
   console.log('Server started on port ' + port);
 });
+
+const removeRoom = (room) => {
+  console.log(`Removing idle room '${room}'`);
+  io.in(room).emit(msg.ROOM_REMOVED);
+  io.of("/").in(room).fetchSockets().then(sockets => {
+    sockets.forEach(s => s.disconnect());
+  });
+  delete rooms[room];
+};
+
+const removeIdleRooms = () => {
+  const date = Date.now() - (ROOM_MAX_IDLE_TIME_MINUTES * 60 * 1000);
+  const asDate = new Date(date);
+  const asString = asDate.toISOString();
+  const allRooms = Object.values(rooms);
+  const roomCount = allRooms.length;
+  const idleRooms = allRooms.filter(room => room.lastInteraction < date);
+  const idleRoomCount = idleRooms.length;
+  console.log(`Number of rooms: ${roomCount} / ${idleRoomCount} (idle)`);
+  idleRooms.forEach(room => removeRoom(room.id));
+};
+
+setInterval(function() {
+  removeIdleRooms();
+}, IDLE_ROOM_CHECK_INTERVAL_MINUTES * 60 * 1000);

@@ -26,6 +26,8 @@ import {
   useRecoilValue,
 } from 'recoil';
 
+import {useHistory} from "react-router-dom";
+
 const clientsState = atom({
   key: 'clients',
   default: []
@@ -86,6 +88,7 @@ export const PokerPlanning = ({roomId}) => {
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
   const [config, setConfig] = useRecoilState(configState);
   const [client, setClient] = useState();
+  const history = useHistory();
 
   useEffect(() => {
     const socket = io(WS_SERVER);
@@ -118,6 +121,11 @@ export const PokerPlanning = ({roomId}) => {
     socket.on(Msg.CONFIG, (msg) => {
       console.log(Msg.CONFIG);
       setConfig(JSON.parse(msg));
+    });
+    socket.on(Msg.ROOM_REMOVED, (msg) => {
+      console.log(Msg.ROOM_REMOVED);
+      socket.disconnect();
+      history.push('/');
     });
 
     setClient(socket);
@@ -421,6 +429,7 @@ export const WelcomeScreen = ({roomId, client}) => {
   const onEnter = (e) => {
     if(e.keyCode == 13) sendJoinMessage();
   };
+  const isValidName = () => user && user.trim().length > 0;
 
   return submitted ? null :
     <div>
@@ -428,7 +437,7 @@ export const WelcomeScreen = ({roomId, client}) => {
       <Box ml={1} display="inline">
         <Button color="primary" variant="contained" size="large" onClick={() => {
           sendJoinMessage();
-        }}>Join</Button>
+        }} disabled={!isValidName()}>Join</Button>
       </Box>
     </div>;
 }

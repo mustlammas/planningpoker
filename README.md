@@ -12,9 +12,9 @@ App for playing Scrum planning poker
 
 # Technical TODO
 - Use typescript
-- Drop clients with a broken/unstable connection
 - Add tests for server and client
 - Set up a build pipeline
+- Set up logging
 
 # Start webpack dev server (frontend)::
 Server: ```npm run start```
