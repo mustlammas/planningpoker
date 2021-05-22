@@ -83,7 +83,9 @@ app.get('/api/new', (req, res) => {
 });
 
 const touch = (room) => {
-  rooms[room].lastInteraction = Date.now();
+  if (rooms[room]) {
+    rooms[room].lastInteraction = Date.now();
+  }
 };
 
 app.get('/api/:roomId', (req, res) => {
