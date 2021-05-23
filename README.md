@@ -3,6 +3,7 @@ App for playing Scrum planning poker
 
 # TODO
 
+- Persistent rooms
 - Record average ticket size.
 - Record median ticket size.
 - Record session time. Suggest breaks?
