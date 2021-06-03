@@ -13,40 +13,40 @@ const {
 
 const defaultOptions = [
   {
-    value: 1,
-    text: "1"
+    text: "1",
+    conflicting: ["3", "5", "8", "13", "20", "50"]
   },
   {
-    value: 2,
-    text: "2"
+    text: "2",
+    conflicting: ["5", "8", "13", "20", "50"]
   },
   {
-    value: 3,
-    text: "3"
+    text: "3",
+    conflicting: ["1", "8", "13", "20", "50"]
   },
   {
-    value: 5,
-    text: "5"
+    text: "5",
+    conflicting: ["1", "2", "13", "20", "50"]
   },
   {
-    value: 8,
-    text: "8"
+    text: "8",
+    conflicting: ["1", "2", "3", "20", "50"]
   },
   {
-    value: 13,
-    text: "13"
+    text: "13",
+    conflicting: ["1", "2", "3", "5", "50"]
   },
   {
-    value: 20,
-    text: "20"
+    text: "20",
+    conflicting: ["1", "2", "3", "5", "8"]
   },
   {
-    value: 50,
-    text: "50"
+    text: "50",
+    conflicting: ["1", "2", "3", "5", "8", "13"]
   },
   {
-    value: -1,
-    text: "?"
+    text: "?",
+    conflicting: []
   }];
 
 app.use(express.static(__dirname + '/../dist'));

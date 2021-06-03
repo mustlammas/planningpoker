@@ -1,48 +1,24 @@
 'use strict';
 
-import React, {useEffect, useRef, useState} from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom';
 import { makeStyles } from '@material-ui/core/styles';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import Button from '@material-ui/core/Button';
-import IconButton from '@material-ui/core/IconButton';
-import MenuIcon from '@material-ui/icons/Menu';
-import { Box, Chip, Divider, Grid, List, ListItem, TextField, Modal } from '@material-ui/core';
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TableContainer from '@material-ui/core/TableContainer';
-import TableHead from '@material-ui/core/TableHead';
-import TableRow from '@material-ui/core/TableRow';
-import Paper from '@material-ui/core/Paper';
-import CheckIcon from '@material-ui/icons/Check';
-import WifiIcon from '@material-ui/icons/Wifi';
-import WifiOffIcon from '@material-ui/icons/WifiOff';
-import SettingsIcon from '@material-ui/icons/Settings';
+import { Box, Grid } from '@material-ui/core';
 import GitHubIcon from '@material-ui/icons/GitHub';
-
-import {Room} from './room.js';
-import * as Msg from '../shared/messages.js';
-import './style.css';
-
-import {
-  RecoilRoot,
-  atom,
-  selector,
-  useRecoilState,
-  useRecoilValue,
-} from 'recoil';
-
+import { RecoilRoot } from 'recoil';
 import {
   BrowserRouter as Router,
   Switch,
   Route,
-  Link,
   useHistory,
-  useParams
 } from "react-router-dom";
+
+import {Room} from './room.js';
+import './style.css';
 
 const useStyles = makeStyles((theme) => ({
   root: {

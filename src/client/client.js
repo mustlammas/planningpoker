@@ -3,7 +3,19 @@
 import React, {useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import { io } from "socket.io-client";
-import { Box, Button, Chip, Divider, Grid, List, ListItem, TextField, Modal } from '@material-ui/core';
+import {
+  Box,
+  Button,
+  Chip,
+  Divider,
+  Grid,
+  List,
+  ListItem,
+  TextField,
+  Modal,
+  ListItemText,
+  Dialog, AppBar, makeStyles, Slide
+} from '@material-ui/core';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -12,7 +24,7 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import CheckIcon from '@material-ui/icons/Check';
-import WifiIcon from '@material-ui/icons/Wifi';
+import CloseIcon from '@material-ui/icons/Close';
 import WifiOffIcon from '@material-ui/icons/WifiOff';
 import SettingsIcon from '@material-ui/icons/Settings';
 import ViewColumnIcon from '@material-ui/icons/ViewColumn';
@@ -27,6 +39,9 @@ import {
 } from 'recoil';
 
 import {useHistory} from "react-router-dom";
+import Toolbar from "@material-ui/core/Toolbar";
+import IconButton from "@material-ui/core/IconButton";
+import Typography from "@material-ui/core/Typography";
 
 const clientsState = atom({
   key: 'clients',
@@ -143,7 +158,7 @@ export const PokerPlanning = ({roomId}) => {
     className="container">
     <WelcomeScreen roomId={roomId} client={client}/>
     <Poker client={client}/>
-    <Result/>
+    {submitted && <Result/>}
     <Errors/>
   </Grid>
   </div>;
@@ -151,105 +166,159 @@ export const PokerPlanning = ({roomId}) => {
 
 const ConfigModal = ({config, client}) => {
   const [configuring, setConfiguring] = useRecoilState(configuringState);
-  const [options, setOptions] = useState([...config.options, {text: "", value: ""}]);
+  const [options, setOptions] = useState([...config.options, {text: "", conflicting: []}]);
 
   const onSave = () => {
-    const filtered = options.filter(o => o.text && o.value).map(o => {
-      const value = isNaN(o.value) ? -1 : parseInt(o.value);
+    const filtered = options.filter(o => o.text).map(o => {
       return {
         text: o.text,
-        value: value
+        conflicting: o.conflicting
       };
     });
     sendMessage(client, Msg.UPDATE_CONFIG, filtered);
     setConfiguring(false);
   };
 
-  return <Modal
-    style={{width: "400px"}}
-    open={configuring}
-    onClose={() => setConfiguring(false)}>
-    <Box style={{backgroundColor: "#eee "}}>
-      <TableContainer component={Paper}>
-        <Table aria-label="Options table" size="small">
-          <TableHead>
-            <TableRow width="10rem">
-              <TableCell>Label</TableCell>
-              <TableCell align="right">Value (number)</TableCell>
-              <TableCell/>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {options.map((option, i) => {
-              const onTextChange = (e) => {
-                const newText = e.target.value;
+  const useStyles = makeStyles((theme) => ({
+    appBar: {
+      position: 'relative',
+    },
+    title: {
+      marginLeft: theme.spacing(2),
+      flex: 1,
+    }
+  }));
+
+  const classes = useStyles();
+
+  const handleClose = () => {
+    setConfiguring(false);
+  };
+
+  return <Dialog fullScreen open={configuring} onClose={handleClose}>
+    <AppBar className={classes.appBar}>
+      <Toolbar>
+        <IconButton edge="start" color="inherit" onClick={handleClose} aria-label="close">
+          <CloseIcon />
+        </IconButton>
+        <Typography variant="h6" className={classes.title}>
+          Options
+        </Typography>
+        <Button autoFocus color="inherit" onClick={onSave}>
+          Save
+        </Button>
+      </Toolbar>
+    </AppBar>
+    <TableContainer component={Paper}>
+      <Table aria-label="Options table" size="small">
+        <TableHead>
+          <TableRow width="10rem">
+            <TableCell>Label</TableCell>
+            <TableCell>Conflicting options</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {options.map((option, optIndex) => {
+            const onTextChange = (e) => {
+              const newText = e.target.value;
+              const newOptions = [...options];
+              const oldOption = newOptions[optIndex];
+              const newOption = {
+                ...oldOption,
+                text: newText
+              };
+
+              newOptions.splice(optIndex, 1, newOption);
+
+              const lastOption = newOptions[newOptions.length - 1];
+              if (lastOption.text) {
+                newOptions.push({text: "", value: "", conflicting: []});
+              }
+
+              setOptions(newOptions);
+            };
+
+            const onRemove = () => {
+              const newOptions = [...options];
+              newOptions.splice(optIndex, 1);
+              setOptions(newOptions);
+            };
+
+            const toggleConflicting = (text, i, oIndex) => {
+              const isConflicting = option.conflicting.includes(text);
+              if (isConflicting) {
+                const copy = option.conflicting.filter(c => c !== text);
+                const optionCopy = {...option};
+                optionCopy.conflicting = copy;
                 const newOptions = [...options];
-                const oldOption = newOptions[i];
-                const newOption = {
-                  ...oldOption,
-                  text: newText
-                };
+                newOptions.splice(oIndex, 1, optionCopy);
 
-                newOptions.splice(i, 1, newOption);
+                const otherOption = options.find(o => o.text === text);
+                const otherOptionIndex = options.indexOf(otherOption);
+                const otherCopy = otherOption.conflicting.filter(c => c !== option.text);
+                const otherOptionCopy = {...otherOption};
+                otherOptionCopy.conflicting = otherCopy;
+                newOptions.splice(otherOptionIndex, 1, otherOptionCopy);
 
-                const lastOption = newOptions[newOptions.length - 1];
-                if (lastOption.text && lastOption.value) {
-                  newOptions.push({text: "", value: ""});
+                setOptions(newOptions);
+              } else {
+                const copy = [...option.conflicting];
+                copy.splice(i, 0, text);
+                const optionCopy = {...option};
+                optionCopy.conflicting = copy;
+                const newOptions = [...options];
+                newOptions.splice(oIndex, 1, optionCopy);
+
+                const otherOption = options.find(o => o.text === text);
+                const otherOptionIndex = options.indexOf(otherOption);
+                const otherCopy = [...otherOption.conflicting];
+                otherCopy.splice(i, 0, option.text);
+                const otherOptionCopy = {...otherOption};
+                otherOptionCopy.conflicting = otherCopy;
+                newOptions.splice(otherOptionIndex, 1, otherOptionCopy);
+
+                setOptions(newOptions);
+              }
+            };
+
+            const hasLabel = option.text.trim() !== "";
+
+            return <TableRow key={optIndex}>
+              <TableCell>
+                <TextField variant="outlined" size="small" value={option.text} onChange={onTextChange}/>
+              </TableCell>
+              <TableCell>
+                {
+                  hasLabel && options.filter(o => o.text.trim() !== "").map((o, i) => {
+                    const isThisOption = o.text === option.text;
+                    const style = isThisOption ?
+                        {} :
+                        option.conflicting.includes(o.text) ?
+                            {backgroundColor: "#ff7961"} :
+                            {}
+                    const variant = isThisOption ? "default" : "outlined";
+                    return <Chip
+                        key={i}
+                        label={o.text}
+                        disabled={isThisOption}
+                        onClick={() => toggleConflicting(o.text, i, optIndex)}
+                        variant={variant}
+                        style={style}
+                    />;
+                  })
                 }
-
-                setOptions(newOptions);
-              };
-
-              const onValueChange = (e) => {
-                const newValue = e.target.value;
-                const newOptions = [...options];
-                const oldOption = newOptions[i];
-                const newOption = {
-                  ...oldOption,
-                  value: newValue
-                };
-
-                newOptions.splice(i, 1, newOption);
-
-                const lastOption = newOptions[newOptions.length - 1];
-                if (lastOption.text && lastOption.value) {
-                  newOptions.push({text: "", value: ""});
+              </TableCell>
+              <TableCell align="right">
+                {
+                  option.text && <Button onClick={onRemove}>Remove</Button>
                 }
-
-                setOptions(newOptions);
-              };
-
-              const onRemove = () => {
-                const newOptions = [...options];
-                newOptions.splice(i, 1);
-                setOptions(newOptions);
-              };
-
-              return <TableRow key={i}>
-                <TableCell>
-                  <TextField variant="outlined" size="small" value={option.text} onChange={onTextChange}/>
-                </TableCell>
-                <TableCell align="left">
-                  <TextField variant="outlined" size="small" value={option.value} onChange={onValueChange}/>
-                </TableCell>
-                <TableCell align="right">
-                  {
-                    option.text && option.value && <Button onClick={onRemove}>Remove</Button>
-                  }
-                </TableCell>
-              </TableRow>;
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <Box style={{padding: "10px"}}>
-        <i>Negative values are ignored when determining the result of a vote.</i>
-      </Box>
-      <Box display="flex" justifyContent="flex-end" style={{padding: "10px"}}>
-        <Button color="primary" variant="contained" onClick={onSave}>Save</Button>
-      </Box>
-    </Box>
-  </Modal>;
+              </TableCell>
+            </TableRow>;
+          })}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  </Dialog>;
 };
 
 const Config = ({client}) => {
@@ -270,7 +339,7 @@ const Config = ({client}) => {
 const Errors = () => {
   const [errors] = useRecoilState(errorsState);
   return <Box className="errors" color="secondary.main">
-    {errors.map(e => <Box key={e}>{e}</Box>)}
+    {errors.map((e, i) => <Box key={i}>{e}</Box>)}
   </Box>;
 };
 
@@ -296,34 +365,16 @@ const Poker = ({client}) => {
 
   const usersWithDiffingVotes = () => {
     if (everyoneHasVoted(votes) && config && config.options) {
-      const numericVotes = votes
-        .filter(v => !v.observer)
-        .map(v => parseInt(v.vote))
-        .filter(v => v >= 0)
-        .sort();
-
-      const minVote = Math.min(...numericVotes);
-      const maxVote = Math.max(...numericVotes);
-      const maxVoteObject = config.options.find(o => o.value === maxVote);
-      const minVoteObject = config.options.find(o => o.value === minVote);
-      const minVoteIndex = config.options.indexOf(minVoteObject);
-      const maxVoteIndex = config.options.indexOf(maxVoteObject);
-      const indexDiff = maxVoteIndex - minVoteIndex;
-
-      if (indexDiff < 2) {
-        return [];
-      }
-
       return votes
-        .filter(v => !v.observer)
-        .filter(v => {
-          if (!isNaN(v.vote)) {
-            const nr = parseInt(v.vote);
-            return nr === minVote || nr === maxVote
-          } else {
-            return false;
-          }
-        }).map(v => v.username);
+          .filter(v => !v.observer)
+          .filter(v => {
+        let option = config.options.find(o => o.text === v.vote) || {text: "?", conflicting: []};
+        let conflictingVote = votes.find(v => {
+          return option.conflicting.includes(v.vote);
+        });
+
+        return conflictingVote ? true : false;
+      }).map(v => v.username);
     } else {
       return [];
     }
@@ -335,12 +386,12 @@ const Poker = ({client}) => {
 
   return submitted && config && config.options ? <Box>
     <Grid container justify="center">
-      {config.options.map(option => {
-        let color = selectedPoints === option.value ? "secondary" : "primary";
-        return <Box key={option.value} p={1} display="inline">
+      {config.options.map((option, i) => {
+        let color = selectedPoints === option.text ? "secondary" : "primary";
+        return <Box key={i} p={1} display="inline">
           <Button color={color} variant="contained" size="large" disabled={observer} onClick={() => {
-            sendVote(option.value);
-            setSelectedPoints(option.value);
+            sendVote(option.text);
+            setSelectedPoints(option.text);
           }}>{option.text}</Button>
         </Box>;
       })}
@@ -364,8 +415,7 @@ const Poker = ({client}) => {
               let checkIcon = v.vote ? <CheckIcon/> : null
               let style = diffingUsers.includes(v.username) ? {fontWeight: "bold", backgroundColor: "#ff7961"} : {fontWeight: "bold"};
               let nameStyle = user === v.username ? {fontWeight: "bold"} : {};
-              let connProblem = v.connection_broken ? <WifiOffIcon color="#ccc"/> : null;
-              let voteObject = config.options.find(o => o.value === v.vote) || {value: -1, text: "?"};
+              let voteObject = config.options.find(o => o.text === v.vote) || {text: "?"};
               let vote = v.observer ?
                 <Chip label="observer"/> :
                 everyoneHasVoted(votes) ?
@@ -373,7 +423,7 @@ const Poker = ({client}) => {
                   checkIcon;
               return <TableRow key={v.username} style={{height: "50px"}}>
                 <TableCell align="left" style={nameStyle}>{v.username}</TableCell>
-                <TableCell align="right">{connProblem} {vote}</TableCell>
+                <TableCell align="right">{vote}</TableCell>
               </TableRow>;
             })}
           </TableBody>
@@ -384,35 +434,39 @@ const Poker = ({client}) => {
 };
 
 const Result = () => {
-  const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
   const [votes] = useRecoilState(votesState);
   const config = useRecoilValue(configState);
-
-  if (!submitted) return null;
+  const options = config.options;
 
   if (everyoneHasVoted(votes)) {
-    const numericVotes = votes
-      .filter(v => !v.observer)
-      .map(v => parseInt(v.vote))
-      .filter(v => v >= 0)
-      .sort();
+    const participantVotes = votes.filter(v => !v.observer);
 
-    if (numericVotes.length === 0) {
+    if (participantVotes.length === 0) {
       return <h1>?</h1>;
     }
 
-    const minVote = Math.min(...numericVotes);
-    const maxVote = Math.max(...numericVotes);
-    const maxVoteObject = config.options.find(o => o.value === maxVote);
-    const minVoteObject = config.options.find(o => o.value === minVote);
-    const minVoteIndex = config.options.indexOf(minVoteObject);
-    const maxVoteIndex = config.options.indexOf(maxVoteObject);
-    const indexDiff = maxVoteIndex - minVoteIndex;
+    const conflictingVotes = participantVotes.filter(v => {
+      const conflicting = options.find(o => o.text === v.vote).conflicting;
+      return conflicting.find(c => {
+        return participantVotes.map(pv => pv.vote).find(pv => pv === c);
+      });
+    });
 
-    if (indexDiff > 1) {
+    const votesWithIndexes = votes.map(v => {
+      const option = options.find(o => o.text === v.vote);
+      return {
+        ...v,
+        index: options.lastIndexOf(option)
+      };
+    });
+    votesWithIndexes.sort((a,b) => (a.index > b.index) ? 1 : ((b.index > a.index) ? -1 : 0));
+
+    const largestVote = votesWithIndexes.pop();
+
+    if (conflictingVotes.length > 0) {
       return <h1>Conflicting votes!</h1>;
     } else {
-      return <h1>{maxVoteObject && maxVoteObject.text}</h1>;
+      return <h1>{largestVote.vote}</h1>;
     }
   } else {
     return <h1>Waiting for votes...</h1>;
