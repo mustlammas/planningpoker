@@ -3,13 +3,14 @@ App for playing Scrum planning poker
 
 # TODO
 
-- Persistent rooms
+- Show errors using toaster.
+- Persistent rooms.
 - Record average ticket size.
 - Record median ticket size.
 - Record session time. Suggest breaks?
 - Allow recording story titles.
 - Record estimated stories and allow export.
-- Allow room owner to kick people
+- Allow room owner to kick people.
 
 # Technical TODO
 - Use typescript
