@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Box, Link} from '@material-ui/core';
-import {WelcomeScreen, PokerPlanning} from './client.js';
+import {WelcomeScreen, PokerClient} from './poker-client.js';
 import {
   RecoilRoot,
   atom,
@@ -15,6 +15,6 @@ import {
 export const Room = () => {
   let { id } = useParams();
   return <RecoilRoot>
-    <PokerPlanning roomId={id}/>
+    <PokerClient roomId={id}/>
   </RecoilRoot>;
 }
