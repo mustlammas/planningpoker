@@ -1,11 +1,12 @@
 import {useRecoilState} from "recoil";
-import {Box} from "@material-ui/core";
+import Alert from '@material-ui/lab/Alert';
 import React from "react";
 import {errorsState} from "./state";
+import {Box} from "@material-ui/core";
 
 export const Errors = () => {
     const [errors] = useRecoilState(errorsState);
-    return <Box className="errors" color="secondary.main">
-        {errors.map((e, i) => <Box key={i}>{e}</Box>)}
+    return <Box style={{marginTop: "20px"}}>
+        {errors.map((e, i) => <Alert severity="error" key={i}>{e}</Alert>)}
     </Box>;
 };
