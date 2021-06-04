@@ -11,6 +11,7 @@ App for playing Scrum planning poker
 - Allow recording story titles.
 - Record estimated stories and allow export.
 - Allow room owner to kick people.
+- Show who joined, left, became observer or participant.
 
 # Technical TODO
 - Use typescript

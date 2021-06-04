@@ -20,11 +20,6 @@ export const userSubmittedState = atom({
     default: false,
 });
 
-export const errorsState = atom({
-    key: 'errors',
-    default: []
-});
-
 export const selectedPointsState = atom({
     key: 'selectedPoints'
 });

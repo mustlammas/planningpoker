@@ -1,6 +1,5 @@
 const http = require('http');
 const express = require('express');
-const WebSocket = require('ws');
 const crypto = require("crypto");
 const path = require('path');
 
@@ -115,6 +114,17 @@ const options = {
 
 const io = require('socket.io')(server, options);
 
+const ensuringUniqueUsername = (room, username, socket, onSuccess) => {
+  io.of("/").in(room).fetchSockets().then(sockets => {
+    const usernameExists = sockets.map(s => s.username).includes(username);
+    if (usernameExists) {
+      sendError(socket, `Username ${username} already taken.`);
+    } else {
+      onSuccess();
+    }
+  });
+};
+
 io.on('connect', (socket) => {
   console.log('Client ' + socket.id + ' connected');
 
@@ -124,15 +134,17 @@ io.on('connect', (socket) => {
     let room = m.room;
     let existingRoom = rooms[room];
     if (existingRoom) {
-      socket.join(room);
-      console.log(`User ${username} joined room ${room}`);
-      socket.username = username;
-      sendMessage(socket, msg.USERNAME_OK, {
-        username: username
+      ensuringUniqueUsername(room, username, socket, () => {
+        socket.join(room);
+        console.log(`User ${username} joined room ${room}`);
+        socket.username = username;
+        sendMessage(socket, msg.USERNAME_OK, {
+          username: username
+        });
+        sendUserList(room);
+        sendConfig(room);
+        touch(room);
       });
-      sendUserList(room);
-      sendConfig(room);
-      touch(room);
     } else {
       sendError(socket, `Room ${room} does not exist.`);
     }
@@ -247,8 +259,6 @@ const removeRoom = (room) => {
 
 const removeIdleRooms = () => {
   const date = Date.now() - (ROOM_MAX_IDLE_TIME_MINUTES * 60 * 1000);
-  const asDate = new Date(date);
-  const asString = asDate.toISOString();
   const allRooms = Object.values(rooms);
   const roomCount = allRooms.length;
   const idleRooms = allRooms.filter(room => room.lastInteraction < date);

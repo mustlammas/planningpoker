@@ -19,6 +19,8 @@ import {
 
 import {Room} from './room.js';
 import './style.css';
+import { ToastContainer } from "material-react-toastify";
+import 'material-react-toastify/dist/ReactToastify.css';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -59,6 +61,7 @@ const App = () => {
         </Route>
       </Switch>
     </Router>
+    <ToastContainer position="bottom-center"/>
   </RecoilRoot>;
 };
 

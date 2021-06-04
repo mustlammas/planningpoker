@@ -78,7 +78,7 @@ export const Poker = ({client}) => {
             <TableContainer>
                 <Table size="small" aria-label="a table">
                     <TableBody>
-                        {votes.map(v => {
+                        {votes.map((v, i) => {
                             let checkIcon = v.vote ? <CheckIcon/> : null
                             let style = diffingUsers.includes(v.username) ? {fontWeight: "bold", backgroundColor: "#ff7961"} : {fontWeight: "bold"};
                             let nameStyle = user === v.username ? {fontWeight: "bold"} : {};
@@ -88,7 +88,7 @@ export const Poker = ({client}) => {
                                 everyoneHasVoted(votes) ?
                                     <Chip label={voteObject.text} style={style}/> :
                                     checkIcon;
-                            return <TableRow key={v.username} style={{height: "50px"}}>
+                            return <TableRow key={i} style={{height: "50px"}}>
                                 <TableCell align="left" style={nameStyle}>{v.username}</TableCell>
                                 <TableCell align="right">{vote}</TableCell>
                             </TableRow>;

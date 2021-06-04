@@ -13,16 +13,15 @@ import {
 
 import * as Msg from '../shared/messages.js';
 import './style.css';
-import {configState, errorsState, selectedPointsState, userSubmittedState, votesState} from "./state";
+import {configState, selectedPointsState, userSubmittedState, votesState} from "./state";
 import {Result} from "./result";
 import {WelcomeScreen} from "./welcome";
-import {Errors} from "./errors";
 import {Poker} from "./poker";
+import {showError} from "./common";
 
 export const PokerClient = ({roomId}) => {
   const setVotes = useSetRecoilState(votesState);
   const setSelectedPoints = useSetRecoilState(selectedPointsState);
-  const [errors, setErrors] = useRecoilState(errorsState);
   const [submitted, setSubmitted] = useRecoilState(userSubmittedState);
   const setConfig = useSetRecoilState(configState);
   const [client, setClient] = useState();
@@ -34,7 +33,7 @@ export const PokerClient = ({roomId}) => {
     socket.on(Msg.ERROR, (msg) => {
       const e = JSON.parse(msg);
       console.log("Error: ", e);
-      setErrors([e.error]);
+      showError(e.error);
     });
     socket.on(Msg.UPDATE_USERS, (msg) => {
       console.log(Msg.UPDATE_USERS);
@@ -45,15 +44,8 @@ export const PokerClient = ({roomId}) => {
       console.log(Msg.RESET_VOTE);
       setSelectedPoints(undefined);
     });
-    socket.on(Msg.USER_EXISTS, (msg) => {
-      console.log(Msg.USER_EXISTS);
-      const e = [...errors];
-      e.push("Name is in use. Pick another.");
-      setErrors(e);
-    });
     socket.on(Msg.USERNAME_OK, (msg) => {
       console.log(Msg.USERNAME_OK);
-      setErrors([]);
       setSubmitted(true);
     });
     socket.on(Msg.CONFIG, (msg) => {
@@ -81,6 +73,5 @@ export const PokerClient = ({roomId}) => {
     <WelcomeScreen roomId={roomId} client={client}/>
     {submitted && <Poker client={client}/>}
     {submitted && <Result/>}
-    <Errors/>
   </Grid>;
 };
