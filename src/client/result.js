@@ -31,17 +31,19 @@ export const Result = () => {
             const option = options.find(o => o.text === v.vote);
             return {
                 ...v,
-                index: options.lastIndexOf(option)
+                index: options.lastIndexOf(option),
+                option: option
             };
         });
         votesWithIndexes.sort((a,b) => (a.index > b.index) ? 1 : ((b.index > a.index) ? -1 : 0));
 
+        const largestConflictingVote = votesWithIndexes.filter(v => v.option.conflicting.length > 0).pop();
         const largestVote = votesWithIndexes.pop();
 
         if (conflictingVotes.length > 0) {
             return <h2>Conflicting votes!</h2>;
         } else {
-            return <h2>{largestVote.vote}</h2>;
+            return <h2>{largestConflictingVote ? largestConflictingVote.vote : largestVote.vote}</h2>;
         }
     } else {
         return <h2>Waiting for votes...</h2>;
