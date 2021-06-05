@@ -51,9 +51,9 @@ export const Poker = ({client}) => {
     const myVote = votes.find(v => v.username === user);
     const observer = myVote && myVote.observer;
 
-    return config && config.options ? <Box>
+    return config && config.template ? <Box>
         <Grid container justify="center">
-            {config.options.map((option, i) => {
+            {config.template.options.map((option, i) => {
                 let color = selectedPoints === option.text ? "secondary" : "primary";
                 return <Box key={i} p={1} display="inline">
                     <Button color={color} variant="contained" size="large" disabled={observer} onClick={() => {
@@ -82,7 +82,7 @@ export const Poker = ({client}) => {
                             let checkIcon = v.vote ? <CheckIcon/> : null
                             let style = diffingUsers.includes(v.username) ? {fontWeight: "bold", backgroundColor: "#ff7961"} : {fontWeight: "bold"};
                             let nameStyle = user === v.username ? {fontWeight: "bold"} : {};
-                            let voteObject = config.options.find(o => o.text === v.vote) || {text: "?"};
+                            let voteObject = config.template.options.find(o => o.text === v.vote) || {text: "?"};
                             let vote = v.observer ?
                                 <Chip label="observer"/> :
                                 everyoneHasVoted(votes) ?

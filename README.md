@@ -3,7 +3,7 @@ App for playing Scrum planning poker
 
 # TODO
 
-- Show errors using toaster.
+- Allow drag-and-drop reordering of options.
 - Persistent rooms.
 - Record average ticket size.
 - Record median ticket size.

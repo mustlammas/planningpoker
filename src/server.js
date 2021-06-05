@@ -10,44 +10,6 @@ const {
   v4: uuidv4
 } = require('uuid');
 
-const defaultOptions = [
-  {
-    text: "1",
-    conflicting: ["3", "5", "8", "13", "20", "50"]
-  },
-  {
-    text: "2",
-    conflicting: ["5", "8", "13", "20", "50"]
-  },
-  {
-    text: "3",
-    conflicting: ["1", "8", "13", "20", "50"]
-  },
-  {
-    text: "5",
-    conflicting: ["1", "2", "13", "20", "50"]
-  },
-  {
-    text: "8",
-    conflicting: ["1", "2", "3", "20", "50"]
-  },
-  {
-    text: "13",
-    conflicting: ["1", "2", "3", "5", "50"]
-  },
-  {
-    text: "20",
-    conflicting: ["1", "2", "3", "5", "8"]
-  },
-  {
-    text: "50",
-    conflicting: ["1", "2", "3", "5", "8", "13"]
-  },
-  {
-    text: "?",
-    conflicting: []
-  }];
-
 app.use(express.static(__dirname + '/../dist'));
 
 const MAX_ROOMS = 20;
@@ -61,13 +23,17 @@ const createRoom = () => {
   rooms[id] = {
     id: id,
     name: `Room ${id}`,
-    options: defaultOptions,
+    template: FIBONACCI,
+    templates: [
+        FIBONACCI,
+        T_SHIRT
+    ],
     lastInteraction: Date.now()
   };
   return id;
 };
 
-app.get('/api/new', (req, res) => {
+app.get('/api/room/new', (req, res) => {
   if (Object.values(rooms).length >= MAX_ROOMS) {
     res.status(503);
     res.send(JSON.stringify({
@@ -77,7 +43,7 @@ app.get('/api/new', (req, res) => {
   } else {
     const roomId = createRoom();
     res.status(201);
-    res.redirect(`/api/${roomId}`);
+    res.redirect(`/api/room/${roomId}`);
   }
 });
 
@@ -87,7 +53,7 @@ const touch = (room) => {
   }
 };
 
-app.get('/api/:roomId', (req, res) => {
+app.get('/api/room/:roomId', (req, res) => {
   const id = req.params.roomId;
   const room = rooms[id];
   if (room) {
@@ -183,7 +149,15 @@ io.on('connect', (socket) => {
   });
   socket.on(msg.UPDATE_CONFIG, message => {
     const room = [...socket.rooms][1];
-    rooms[room].options = JSON.parse(message);
+    const template = JSON.parse(message);
+    const templates = rooms[room].templates;
+
+    if (template.name === "Custom" && !templates.find(t => t.name === "Custom")) {
+      rooms[room].templates = [...rooms[room].templates, template];
+    }
+    rooms[room].template = template;
+
+    console.log("Updated config: ", rooms[room].template);
     sendConfig(room);
     resetVotes(room);
     touch(room);
@@ -241,6 +215,7 @@ const resetVotes = (room) => {
 };
 
 const sendConfig = (room) => {
+  console.log("Sending config: ", rooms[room]);
   io.in(room).emit(msg.CONFIG, JSON.stringify(rooms[room]));
 };
 
@@ -270,3 +245,75 @@ const removeIdleRooms = () => {
 setInterval(function() {
   removeIdleRooms();
 }, IDLE_ROOM_CHECK_INTERVAL_MINUTES * 60 * 1000);
+
+const FIBONACCI = {
+  name: "Fibonacci",
+  options: [
+    {
+      text: "1",
+      conflicting: ["3", "5", "8", "13", "20", "50"]
+    },
+    {
+      text: "2",
+      conflicting: ["5", "8", "13", "20", "50"]
+    },
+    {
+      text: "3",
+      conflicting: ["1", "8", "13", "20", "50"]
+    },
+    {
+      text: "5",
+      conflicting: ["1", "2", "13", "20", "50"]
+    },
+    {
+      text: "8",
+      conflicting: ["1", "2", "3", "20", "50"]
+    },
+    {
+      text: "13",
+      conflicting: ["1", "2", "3", "5", "50"]
+    },
+    {
+      text: "20",
+      conflicting: ["1", "2", "3", "5", "8"]
+    },
+    {
+      text: "50",
+      conflicting: ["1", "2", "3", "5", "8", "13"]
+    },
+    {
+      text: "?",
+      conflicting: []
+    }
+  ]
+};
+
+const T_SHIRT = {
+  name: "T-Shirt",
+  options: [
+    {
+      text: "XS",
+      conflicting: ["M", "L", "XL"]
+    },
+    {
+      text: "S",
+      conflicting: ["L", "XL"]
+    },
+    {
+      text: "M",
+      conflicting: ["XS", "XL"]
+    },
+    {
+      text: "L",
+      conflicting: ["XS", "S"]
+    },
+    {
+      text: "XL",
+      conflicting: ["XS", "S", "M"]
+    },
+    {
+      text: "?",
+      conflicting: []
+    }
+  ]
+};

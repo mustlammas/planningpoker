@@ -6,7 +6,7 @@ import {configState, votesState} from "./state";
 export const Result = () => {
     const [votes] = useRecoilState(votesState);
     const config = useRecoilValue(configState);
-    const options = config.options;
+    const options = config.template && config.template.options || [];
 
     if (everyoneHasVoted(votes)) {
         const participantVotes = votes.filter(v => !v.observer);
@@ -39,11 +39,11 @@ export const Result = () => {
         const largestVote = votesWithIndexes.pop();
 
         if (conflictingVotes.length > 0) {
-            return <h1>Conflicting votes!</h1>;
+            return <h2>Conflicting votes!</h2>;
         } else {
-            return <h1>{largestVote.vote}</h1>;
+            return <h2>{largestVote.vote}</h2>;
         }
     } else {
-        return <h1>Waiting for votes...</h1>;
+        return <h2>Waiting for votes...</h2>;
     }
 };

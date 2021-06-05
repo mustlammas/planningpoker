@@ -1,8 +1,16 @@
 import {atom, useRecoilState, useRecoilValue, useSetRecoilState} from "recoil";
 import {configState} from "./state";
-import React, {useState} from "react";
+import React from "react";
 import * as Msg from "../shared/messages";
-import {AppBar, Button, Chip, Dialog, makeStyles, TextField} from "@material-ui/core";
+import {
+    AppBar,
+    Button,
+    Chip,
+    Dialog, FormControl, InputLabel,
+    List,
+    makeStyles, MenuItem, Select,
+    TextField
+} from "@material-ui/core";
 import Toolbar from "@material-ui/core/Toolbar";
 import IconButton from "@material-ui/core/IconButton";
 import CloseIcon from "@material-ui/icons/Close";
@@ -22,35 +30,50 @@ const configuringState = atom({
     default: false
 });
 
+const originalConfigState = atom({
+    key: 'originalConfigState',
+    default: undefined
+});
+
+const useStyles = makeStyles((theme) => ({
+    appBar: {
+        position: 'relative',
+    },
+    title: {
+        marginLeft: theme.spacing(2),
+        flex: 1,
+    },
+    formControl: {
+        margin: theme.spacing(1),
+        minWidth: 120,
+    },
+    selectEmpty: {
+        marginTop: theme.spacing(2),
+    },
+}));
+
 const ConfigModal = ({client}) => {
     const setConfiguring = useSetRecoilState(configuringState);
-    const config = useRecoilValue(configState);
-    const [options, setOptions] = useState([...config.options, {text: "", conflicting: []}]);
+    const [config, setConfig] = useRecoilState(configState);
+    const originalConfig = useRecoilValue(originalConfigState);
+    const classes = useStyles();
 
     const onSave = () => {
-        const filtered = options.filter(o => o.text).map(o => {
+        const filtered = config.template.options.filter(o => o.text).map(o => {
             return {
                 text: o.text,
                 conflicting: o.conflicting
             };
         });
-        sendMessage(client, Msg.UPDATE_CONFIG, filtered);
+        sendMessage(client, Msg.UPDATE_CONFIG, {
+            ...config.template,
+            options: filtered
+        });
         setConfiguring(false);
     };
 
-    const useStyles = makeStyles((theme) => ({
-        appBar: {
-            position: 'relative',
-        },
-        title: {
-            marginLeft: theme.spacing(2),
-            flex: 1,
-        }
-    }));
-
-    const classes = useStyles();
-
     const handleClose = () => {
+        setConfig(originalConfig);
         setConfiguring(false);
     };
 
@@ -77,10 +100,10 @@ const ConfigModal = ({client}) => {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {options.map((option, optIndex) => {
+                    {config.template.options.map((option, optIndex) => {
                         const onTextChange = (e) => {
                             const newText = e.target.value;
-                            const newOptions = [...options];
+                            const newOptions = [...config.template.options];
                             const oldOption = newOptions[optIndex];
                             const newOption = {
                                 ...oldOption,
@@ -94,13 +117,49 @@ const ConfigModal = ({client}) => {
                                 newOptions.push({text: "", value: "", conflicting: []});
                             }
 
-                            setOptions(newOptions);
+                            setConfig({
+                                ...config,
+                                template: {
+                                    ...config.template,
+                                    options: newOptions
+                                }
+                            });
+                        };
+
+                        const updateConfig = (options) => {
+                            const customTemplate = config.templates.find(t => t.name === "Custom");
+                            if (customTemplate) {
+                                const newCustomTemplate = {
+                                    ...customTemplate,
+                                    options: options
+                                };
+                                const newTemplates = [...config.templates];
+                                newTemplates.splice(config.templates.indexOf(customTemplate), 1, newCustomTemplate);
+                                setConfig({
+                                    ...config,
+                                    template: newCustomTemplate,
+                                    templates: newTemplates
+                                });
+                            } else {
+                                const newCustomTemplate = {
+                                    name: "Custom",
+                                    options: options
+                                };
+                                setConfig({
+                                    ...config,
+                                    template: newCustomTemplate,
+                                    templates: [
+                                        ...config.templates,
+                                        newCustomTemplate
+                                    ]
+                                });
+                            }
                         };
 
                         const onRemove = () => {
-                            const newOptions = [...options];
+                            const newOptions = [...config.template.options];
                             newOptions.splice(optIndex, 1);
-                            setOptions(newOptions);
+                            updateConfig(newOptions);
                         };
 
                         const toggleConflicting = (text, i, oIndex) => {
@@ -109,34 +168,34 @@ const ConfigModal = ({client}) => {
                                 const copy = option.conflicting.filter(c => c !== text);
                                 const optionCopy = {...option};
                                 optionCopy.conflicting = copy;
-                                const newOptions = [...options];
+                                const newOptions = [...config.template.options];
                                 newOptions.splice(oIndex, 1, optionCopy);
 
-                                const otherOption = options.find(o => o.text === text);
-                                const otherOptionIndex = options.indexOf(otherOption);
+                                const otherOption = config.template.options.find(o => o.text === text);
+                                const otherOptionIndex = config.template.options.indexOf(otherOption);
                                 const otherCopy = otherOption.conflicting.filter(c => c !== option.text);
                                 const otherOptionCopy = {...otherOption};
                                 otherOptionCopy.conflicting = otherCopy;
                                 newOptions.splice(otherOptionIndex, 1, otherOptionCopy);
 
-                                setOptions(newOptions);
+                                updateConfig(newOptions);
                             } else {
                                 const copy = [...option.conflicting];
                                 copy.splice(i, 0, text);
                                 const optionCopy = {...option};
                                 optionCopy.conflicting = copy;
-                                const newOptions = [...options];
+                                const newOptions = [...config.template.options];
                                 newOptions.splice(oIndex, 1, optionCopy);
 
-                                const otherOption = options.find(o => o.text === text);
-                                const otherOptionIndex = options.indexOf(otherOption);
+                                const otherOption = config.template.options.find(o => o.text === text);
+                                const otherOptionIndex = config.template.options.indexOf(otherOption);
                                 const otherCopy = [...otherOption.conflicting];
                                 otherCopy.splice(i, 0, option.text);
                                 const otherOptionCopy = {...otherOption};
                                 otherOptionCopy.conflicting = otherCopy;
                                 newOptions.splice(otherOptionIndex, 1, otherOptionCopy);
 
-                                setOptions(newOptions);
+                                updateConfig(newOptions);
                             }
                         };
 
@@ -148,7 +207,7 @@ const ConfigModal = ({client}) => {
                             </TableCell>
                             <TableCell>
                                 {
-                                    hasLabel && options.filter(o => o.text.trim() !== "").map((o, i) => {
+                                    hasLabel && config.template.options.filter(o => o.text.trim() !== "").map((o, i) => {
                                         const isThisOption = o.text === option.text;
                                         const style = isThisOption ?
                                             {} :
@@ -177,14 +236,50 @@ const ConfigModal = ({client}) => {
                 </TableBody>
             </Table>
         </TableContainer>
+        <TemplateSelector/>
     </Dialog>;
 };
 
+const TemplateSelector = () => {
+    const [config, setConfig] = useRecoilState(configState);
+    const classes = useStyles();
+
+    const setTemplate = (template) => {
+        setConfig({
+            ...config,
+            template: config.templates.find(t => t.name === template)
+        });
+    };
+
+    return <List>
+        <FormControl variant="filled" className={classes.formControl}>
+            <InputLabel>Template</InputLabel>
+            <Select
+                value={config.template.name}
+                onChange={(e) => setTemplate(e.target.value)}
+                inputProps={{
+                    name: 'template'
+                }}
+            >
+                {
+                    config.templates.map((t, i) => <MenuItem key={i} value={t.name}>{t.name}</MenuItem>)
+                }
+            </Select>
+        </FormControl>
+    </List>;
+};
+
 export const Config = ({client}) => {
+    const config = useRecoilValue(configState);
     const [configuring, setConfiguring] = useRecoilState(configuringState);
+    const setOriginalConfig = useSetRecoilState(originalConfigState);
+    const onStartConfiguring = () => {
+        setOriginalConfig(config);
+        setConfiguring(true);
+    };
 
     return <>
-        <Button onClick={() => setConfiguring(true)} size="large">
+        <Button onClick={onStartConfiguring} size="large">
             <SettingsIcon color="disabled"/>
         </Button>
         {

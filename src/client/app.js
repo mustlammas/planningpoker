@@ -69,7 +69,7 @@ const CreateRoom = () => {
   const history = useHistory();
 
   const createRoom = () => {
-    fetch(`${SERVER}/api/new`, {redirect: 'follow'})
+    fetch(`${SERVER}/api/room/new`, {redirect: 'follow'})
      .then(res => res.json())
      .then(room => {
        history.push(`/room/${room.id}`);
