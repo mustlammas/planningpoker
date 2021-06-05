@@ -30,12 +30,14 @@ export const Poker = ({client}) => {
     const becomeParticipant = () => sendMessage(client, Msg.BECOME_PARTICIPANT);
     const revealVotes = () => sendMessage(client, Msg.REVEAL_VOTES);
 
+    console.log(config);
+
     const usersWithDiffingVotes = () => {
-        if (everyoneHasVoted(votes) && config && config.options) {
+        if (everyoneHasVoted(votes) && config && config.template && config.template.options) {
             return votes
                 .filter(v => !v.observer)
                 .filter(v => {
-                    let option = config.options.find(o => o.text === v.vote) || {text: "?", conflicting: []};
+                    let option = config.template.options.find(o => o.text === v.vote) || {text: "?", conflicting: []};
                     let conflictingVote = votes.find(v => {
                         return option.conflicting.includes(v.vote);
                     });
@@ -48,6 +50,7 @@ export const Poker = ({client}) => {
     };
 
     const diffingUsers = usersWithDiffingVotes();
+    console.log(diffingUsers);
     const myVote = votes.find(v => v.username === user);
     const observer = myVote && myVote.observer;
 

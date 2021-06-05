@@ -8,6 +8,7 @@
     "express-ws": "^4.0.0",
     "material-react-toastify": "^1.0.1",
     "react": "^16.14.0",
+    "react-beautiful-dnd": "^13.1.0",
     "react-dom": "^16.14.0",
     "react-router-dom": "^5.2.0",
     "recoil": "0.0.10",

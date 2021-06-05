@@ -1,6 +1,7 @@
 import {atom, useRecoilState, useRecoilValue, useSetRecoilState} from "recoil";
 import {configState} from "./state";
 import React from "react";
+import {DragDropContext, Draggable, Droppable} from 'react-beautiful-dnd';
 import * as Msg from "../shared/messages";
 import {
     AppBar,
@@ -23,6 +24,7 @@ import TableRow from "@material-ui/core/TableRow";
 import TableCell from "@material-ui/core/TableCell";
 import TableBody from "@material-ui/core/TableBody";
 import SettingsIcon from "@material-ui/icons/Settings";
+import DragIndicatorIcon from '@material-ui/icons/DragIndicator';
 import {sendMessage} from "./common";
 
 const configuringState = atom({
@@ -113,11 +115,58 @@ const ConfigModal = ({client}) => {
         setConfiguring(false);
     };
 
+    const updateConfig = (options) => {
+        const customTemplate = config.templates.find(t => t.name === "Custom");
+        if (customTemplate) {
+            const newCustomTemplate = {
+                ...customTemplate,
+                options: options
+            };
+            const newTemplates = [...config.templates];
+            newTemplates.splice(config.templates.indexOf(customTemplate), 1, newCustomTemplate);
+            setConfig({
+                ...config,
+                template: newCustomTemplate,
+                templates: newTemplates
+            });
+        } else {
+            const newCustomTemplate = {
+                name: "Custom",
+                options: options
+            };
+            setConfig({
+                ...config,
+                template: newCustomTemplate,
+                templates: [
+                    ...config.templates,
+                    newCustomTemplate
+                ]
+            });
+        }
+    };
+
+    const onDragEnd = (result) => {
+        // dropped outside the list
+        if (!result.destination) {
+            return;
+        }
+
+        const from = result.source.index;
+        const to = result.destination.index;
+
+        const reorderedOptions = [...config.template.options];
+        const movedOption = config.template.options[from];
+        reorderedOptions.splice(from, 1);
+        reorderedOptions.splice(to, 0, movedOption);
+
+        updateConfig(reorderedOptions);
+    }
+
     return <Dialog fullScreen open={true} onClose={handleClose}>
         <AppBar className={classes.appBar}>
             <Toolbar>
                 <IconButton edge="start" color="inherit" onClick={handleClose} aria-label="close">
-                    <CloseIcon />
+                    <CloseIcon/>
                 </IconButton>
                 <Typography variant="h6" className={classes.title}>
                     Options
@@ -132,145 +181,165 @@ const ConfigModal = ({client}) => {
             <Table aria-label="Options table" size="small">
                 <TableHead>
                     <TableRow width="10rem">
+                        <TableCell style={{width: "1rem"}}></TableCell>
                         <TableCell>Label</TableCell>
                         <TableCell>Conflicting options</TableCell>
                     </TableRow>
                 </TableHead>
-                <TableBody>
-                    {options.map((option, optIndex) => {
-                        const onTextChange = (e) => {
-                            const newText = e.target.value;
-                            const newOptions = [...options];
-                            const oldOption = newOptions[optIndex];
-                            const newOption = {
-                                ...oldOption,
-                                text: newText
-                            };
+                <DragDropContext onDragEnd={onDragEnd}>
+                    <Droppable droppableId="droppable">
+                        {(provided, snapshot) => (
+                            <TableBody ref={provided.innerRef} {...provided.droppableProps}>
+                                {options.map((option, optIndex) => {
+                                    const onTextChange = (e) => {
+                                        const newText = e.target.value;
+                                        const newOptions = [...options];
+                                        const oldOption = newOptions[optIndex];
+                                        const newOption = {
+                                            ...oldOption,
+                                            text: newText
+                                        };
 
-                            newOptions.splice(optIndex, 1, newOption);
+                                        newOptions.splice(optIndex, 1, newOption);
 
-                            const lastOption = newOptions[newOptions.length - 1];
-                            if (lastOption.text) {
-                                newOptions.push({text: "", value: "", conflicting: []});
-                            }
+                                        const lastOption = newOptions[newOptions.length - 1];
+                                        if (lastOption.text) {
+                                            newOptions.push({text: "", value: "", conflicting: []});
+                                        }
 
-                            setConfig({
-                                ...config,
-                                template: {
-                                    ...config.template,
-                                    options: newOptions
-                                }
-                            });
-                        };
+                                        setConfig({
+                                            ...config,
+                                            template: {
+                                                ...config.template,
+                                                options: newOptions
+                                            }
+                                        });
+                                    };
 
-                        const updateConfig = (options) => {
-                            const customTemplate = config.templates.find(t => t.name === "Custom");
-                            if (customTemplate) {
-                                const newCustomTemplate = {
-                                    ...customTemplate,
-                                    options: options
-                                };
-                                const newTemplates = [...config.templates];
-                                newTemplates.splice(config.templates.indexOf(customTemplate), 1, newCustomTemplate);
-                                setConfig({
-                                    ...config,
-                                    template: newCustomTemplate,
-                                    templates: newTemplates
-                                });
-                            } else {
-                                const newCustomTemplate = {
-                                    name: "Custom",
-                                    options: options
-                                };
-                                setConfig({
-                                    ...config,
-                                    template: newCustomTemplate,
-                                    templates: [
-                                        ...config.templates,
-                                        newCustomTemplate
-                                    ]
-                                });
-                            }
-                        };
+                                    const updateConfig = (options) => {
+                                        const customTemplate = config.templates.find(t => t.name === "Custom");
+                                        if (customTemplate) {
+                                            const newCustomTemplate = {
+                                                ...customTemplate,
+                                                options: options
+                                            };
+                                            const newTemplates = [...config.templates];
+                                            newTemplates.splice(config.templates.indexOf(customTemplate), 1, newCustomTemplate);
+                                            setConfig({
+                                                ...config,
+                                                template: newCustomTemplate,
+                                                templates: newTemplates
+                                            });
+                                        } else {
+                                            const newCustomTemplate = {
+                                                name: "Custom",
+                                                options: options
+                                            };
+                                            setConfig({
+                                                ...config,
+                                                template: newCustomTemplate,
+                                                templates: [
+                                                    ...config.templates,
+                                                    newCustomTemplate
+                                                ]
+                                            });
+                                        }
+                                    };
 
-                        const onRemove = () => {
-                            const newOptions = [...options];
-                            newOptions.splice(optIndex, 1);
-                            updateConfig(newOptions);
-                        };
+                                    const onRemove = () => {
+                                        const newOptions = [...options];
+                                        newOptions.splice(optIndex, 1);
+                                        updateConfig(newOptions);
+                                    };
 
-                        const toggleConflicting = (text, i, oIndex) => {
-                            const isConflicting = option.conflicting.includes(text);
-                            if (isConflicting) {
-                                const copy = option.conflicting.filter(c => c !== text);
-                                const optionCopy = {...option};
-                                optionCopy.conflicting = copy;
-                                const newOptions = [...options];
-                                newOptions.splice(oIndex, 1, optionCopy);
+                                    const toggleConflicting = (text, i, oIndex) => {
+                                        const isConflicting = option.conflicting.includes(text);
+                                        if (isConflicting) {
+                                            const copy = option.conflicting.filter(c => c !== text);
+                                            const optionCopy = {...option};
+                                            optionCopy.conflicting = copy;
+                                            const newOptions = [...options];
+                                            newOptions.splice(oIndex, 1, optionCopy);
 
-                                const otherOption = options.find(o => o.text === text);
-                                const otherOptionIndex = options.indexOf(otherOption);
-                                const otherCopy = otherOption.conflicting.filter(c => c !== option.text);
-                                const otherOptionCopy = {...otherOption};
-                                otherOptionCopy.conflicting = otherCopy;
-                                newOptions.splice(otherOptionIndex, 1, otherOptionCopy);
+                                            const otherOption = options.find(o => o.text === text);
+                                            const otherOptionIndex = options.indexOf(otherOption);
+                                            const otherCopy = otherOption.conflicting.filter(c => c !== option.text);
+                                            const otherOptionCopy = {...otherOption};
+                                            otherOptionCopy.conflicting = otherCopy;
+                                            newOptions.splice(otherOptionIndex, 1, otherOptionCopy);
 
-                                updateConfig(newOptions);
-                            } else {
-                                const copy = [...option.conflicting];
-                                copy.splice(i, 0, text);
-                                const optionCopy = {...option};
-                                optionCopy.conflicting = copy;
-                                const newOptions = [...options];
-                                newOptions.splice(oIndex, 1, optionCopy);
+                                            updateConfig(newOptions);
+                                        } else {
+                                            const copy = [...option.conflicting];
+                                            copy.splice(i, 0, text);
+                                            const optionCopy = {...option};
+                                            optionCopy.conflicting = copy;
+                                            const newOptions = [...options];
+                                            newOptions.splice(oIndex, 1, optionCopy);
 
-                                const otherOption = options.find(o => o.text === text);
-                                const otherOptionIndex = options.indexOf(otherOption);
-                                const otherCopy = [...otherOption.conflicting];
-                                otherCopy.splice(i, 0, option.text);
-                                const otherOptionCopy = {...otherOption};
-                                otherOptionCopy.conflicting = otherCopy;
-                                newOptions.splice(otherOptionIndex, 1, otherOptionCopy);
+                                            const otherOption = options.find(o => o.text === text);
+                                            const otherOptionIndex = options.indexOf(otherOption);
+                                            const otherCopy = [...otherOption.conflicting];
+                                            otherCopy.splice(i, 0, option.text);
+                                            const otherOptionCopy = {...otherOption};
+                                            otherOptionCopy.conflicting = otherCopy;
+                                            newOptions.splice(otherOptionIndex, 1, otherOptionCopy);
 
-                                updateConfig(newOptions);
-                            }
-                        };
+                                            updateConfig(newOptions);
+                                        }
+                                    };
 
-                        const hasLabel = option.text.trim() !== "";
+                                    const hasLabel = option.text.trim() !== "";
 
-                        return <TableRow key={optIndex}>
-                            <TableCell>
-                                <TextField variant="outlined" size="small" value={option.text} onChange={onTextChange}/>
-                            </TableCell>
-                            <TableCell>
-                                {
-                                    hasLabel && options.filter(o => o.text.trim() !== "").map((o, i) => {
-                                        const isThisOption = o.text === option.text;
-                                        const style = isThisOption ?
-                                            {} :
-                                            option.conflicting.includes(o.text) ?
-                                                {backgroundColor: "#ff7961"} :
-                                                {}
-                                        const variant = isThisOption ? "default" : "outlined";
-                                        return <Chip
-                                            key={i}
-                                            label={o.text}
-                                            disabled={isThisOption}
-                                            onClick={() => toggleConflicting(o.text, i, optIndex)}
-                                            variant={variant}
-                                            style={style}
-                                        />;
-                                    })
-                                }
-                            </TableCell>
-                            <TableCell align="right">
-                                {
-                                    option.text && <Button onClick={onRemove}>Remove</Button>
-                                }
-                            </TableCell>
-                        </TableRow>;
-                    })}
-                </TableBody>
+                                    return <Draggable key={optIndex} draggableId={option.text || "empty-label"}
+                                                      index={optIndex}>
+                                        {(provided, snapshot) => (
+                                            <TableRow key={optIndex} ref={provided.innerRef}
+                                                      {...provided.draggableProps}
+                                                      {...provided.dragHandleProps}>
+                                                <TableCell style={{width: "1rem"}}>
+                                                    <DragIndicatorIcon color="disabled"/>
+                                                </TableCell>
+
+                                                <TableCell>
+                                                    <TextField variant="outlined" size="small" value={option.text}
+                                                               onChange={onTextChange}/>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {
+                                                        hasLabel && options.filter(o => o.text.trim() !== "").map((o, i) => {
+                                                            const isThisOption = o.text === option.text;
+                                                            const style = isThisOption ?
+                                                                {} :
+                                                                option.conflicting.includes(o.text) ?
+                                                                    {backgroundColor: "#ff7961"} :
+                                                                    {}
+                                                            const variant = isThisOption ? "default" : "outlined";
+                                                            return <Chip
+                                                                key={i}
+                                                                label={o.text}
+                                                                disabled={isThisOption}
+                                                                onClick={() => toggleConflicting(o.text, i, optIndex)}
+                                                                variant={variant}
+                                                                style={style}
+                                                            />;
+                                                        })
+                                                    }
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    {
+                                                        option.text && <Button onClick={onRemove}>Remove</Button>
+                                                    }
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </Draggable>;
+                                })}
+                                {provided.placeholder}
+                            </TableBody>
+                        )}
+                    </Droppable>
+                </DragDropContext>
             </Table>
         </TableContainer>
     </Dialog>;
