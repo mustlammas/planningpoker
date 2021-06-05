@@ -26,7 +26,8 @@ const createRoom = () => {
     template: FIBONACCI,
     templates: [
         FIBONACCI,
-        T_SHIRT
+        T_SHIRT,
+        SIMPLE
     ],
     lastInteraction: Date.now()
   };
@@ -156,8 +157,6 @@ io.on('connect', (socket) => {
       rooms[room].templates = [...rooms[room].templates, template];
     }
     rooms[room].template = template;
-
-    console.log("Updated config: ", rooms[room].template);
     sendConfig(room);
     resetVotes(room);
     touch(room);
@@ -310,6 +309,28 @@ const T_SHIRT = {
     {
       text: "XL",
       conflicting: ["XS", "S", "M"]
+    },
+    {
+      text: "?",
+      conflicting: []
+    }
+  ]
+};
+
+const SIMPLE = {
+  name: "Simple",
+  options: [
+    {
+      text: "SMALL",
+      conflicting: ["LARGE"]
+    },
+    {
+      text: "MEDIUM",
+      conflicting: []
+    },
+    {
+      text: "LARGE",
+      conflicting: ["SMALL"]
     },
     {
       text: "?",

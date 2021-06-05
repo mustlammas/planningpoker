@@ -45,12 +45,42 @@ const useStyles = makeStyles((theme) => ({
     },
     formControl: {
         margin: theme.spacing(1),
-        minWidth: 120,
+        minWidth: 200,
+
     },
     selectEmpty: {
         marginTop: theme.spacing(2),
     },
 }));
+
+const TemplateSelector = () => {
+    const [config, setConfig] = useRecoilState(configState);
+    const classes = useStyles();
+
+    const setTemplate = (template) => {
+        setConfig({
+            ...config,
+            template: config.templates.find(t => t.name === template)
+        });
+    };
+
+    return <List>
+        <FormControl variant="filled" className={classes.formControl}>
+            <InputLabel>Template</InputLabel>
+            <Select
+                value={config.template.name}
+                onChange={(e) => setTemplate(e.target.value)}
+                inputProps={{
+                    name: 'template'
+                }}
+            >
+                {
+                    config.templates.map((t, i) => <MenuItem key={i} value={t.name}>{t.name}</MenuItem>)
+                }
+            </Select>
+        </FormControl>
+    </List>;
+};
 
 const ConfigModal = ({client}) => {
     const setConfiguring = useSetRecoilState(configuringState);
@@ -92,6 +122,7 @@ const ConfigModal = ({client}) => {
             </Toolbar>
         </AppBar>
         <TableContainer component={Paper}>
+            <TemplateSelector/>
             <Table aria-label="Options table" size="small">
                 <TableHead>
                     <TableRow width="10rem">
@@ -236,37 +267,7 @@ const ConfigModal = ({client}) => {
                 </TableBody>
             </Table>
         </TableContainer>
-        <TemplateSelector/>
     </Dialog>;
-};
-
-const TemplateSelector = () => {
-    const [config, setConfig] = useRecoilState(configState);
-    const classes = useStyles();
-
-    const setTemplate = (template) => {
-        setConfig({
-            ...config,
-            template: config.templates.find(t => t.name === template)
-        });
-    };
-
-    return <List>
-        <FormControl variant="filled" className={classes.formControl}>
-            <InputLabel>Template</InputLabel>
-            <Select
-                value={config.template.name}
-                onChange={(e) => setTemplate(e.target.value)}
-                inputProps={{
-                    name: 'template'
-                }}
-            >
-                {
-                    config.templates.map((t, i) => <MenuItem key={i} value={t.name}>{t.name}</MenuItem>)
-                }
-            </Select>
-        </FormControl>
-    </List>;
 };
 
 export const Config = ({client}) => {
