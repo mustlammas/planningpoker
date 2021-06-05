@@ -88,8 +88,14 @@ const ConfigModal = ({client}) => {
     const originalConfig = useRecoilValue(originalConfigState);
     const classes = useStyles();
 
+    const options =
+        config.template.options.length === 0 ||
+        config.template.options[config.template.options.length - 1].text.trim() === "" ?
+            config.template.options :
+            [...config.template.options, {text: "", conflicting: []}];
+
     const onSave = () => {
-        const filtered = config.template.options.filter(o => o.text).map(o => {
+        const filtered = options.filter(o => o.text).map(o => {
             return {
                 text: o.text,
                 conflicting: o.conflicting
@@ -131,10 +137,10 @@ const ConfigModal = ({client}) => {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {config.template.options.map((option, optIndex) => {
+                    {options.map((option, optIndex) => {
                         const onTextChange = (e) => {
                             const newText = e.target.value;
-                            const newOptions = [...config.template.options];
+                            const newOptions = [...options];
                             const oldOption = newOptions[optIndex];
                             const newOption = {
                                 ...oldOption,
@@ -188,7 +194,7 @@ const ConfigModal = ({client}) => {
                         };
 
                         const onRemove = () => {
-                            const newOptions = [...config.template.options];
+                            const newOptions = [...options];
                             newOptions.splice(optIndex, 1);
                             updateConfig(newOptions);
                         };
@@ -199,11 +205,11 @@ const ConfigModal = ({client}) => {
                                 const copy = option.conflicting.filter(c => c !== text);
                                 const optionCopy = {...option};
                                 optionCopy.conflicting = copy;
-                                const newOptions = [...config.template.options];
+                                const newOptions = [...options];
                                 newOptions.splice(oIndex, 1, optionCopy);
 
-                                const otherOption = config.template.options.find(o => o.text === text);
-                                const otherOptionIndex = config.template.options.indexOf(otherOption);
+                                const otherOption = options.find(o => o.text === text);
+                                const otherOptionIndex = options.indexOf(otherOption);
                                 const otherCopy = otherOption.conflicting.filter(c => c !== option.text);
                                 const otherOptionCopy = {...otherOption};
                                 otherOptionCopy.conflicting = otherCopy;
@@ -215,11 +221,11 @@ const ConfigModal = ({client}) => {
                                 copy.splice(i, 0, text);
                                 const optionCopy = {...option};
                                 optionCopy.conflicting = copy;
-                                const newOptions = [...config.template.options];
+                                const newOptions = [...options];
                                 newOptions.splice(oIndex, 1, optionCopy);
 
-                                const otherOption = config.template.options.find(o => o.text === text);
-                                const otherOptionIndex = config.template.options.indexOf(otherOption);
+                                const otherOption = options.find(o => o.text === text);
+                                const otherOptionIndex = options.indexOf(otherOption);
                                 const otherCopy = [...otherOption.conflicting];
                                 otherCopy.splice(i, 0, option.text);
                                 const otherOptionCopy = {...otherOption};
@@ -238,7 +244,7 @@ const ConfigModal = ({client}) => {
                             </TableCell>
                             <TableCell>
                                 {
-                                    hasLabel && config.template.options.filter(o => o.text.trim() !== "").map((o, i) => {
+                                    hasLabel && options.filter(o => o.text.trim() !== "").map((o, i) => {
                                         const isThisOption = o.text === option.text;
                                         const style = isThisOption ?
                                             {} :
