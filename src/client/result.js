@@ -37,7 +37,7 @@ export const Result = () => {
         });
         votesWithIndexes.sort((a,b) => (a.index > b.index) ? 1 : ((b.index > a.index) ? -1 : 0));
 
-        const largestConflictingVote = votesWithIndexes.filter(v => v.option.conflicting.length > 0).pop();
+        const largestConflictingVote = votesWithIndexes.filter(v => v.option && v.option.conflicting.length > 0).pop();
         const largestVote = votesWithIndexes.pop();
 
         if (conflictingVotes.length > 0) {
