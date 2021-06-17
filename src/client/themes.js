@@ -71,6 +71,34 @@ export const darkTheme = createMuiTheme({
             colorDisabled: {
                 color: "#aaa"
             },
+        },
+        MuiOutlinedInput: {
+            input: {
+                border: '1px solid #ccc',
+                borderRadius: '4px'
+            }
+        },
+        MuiSelect: {
+            filled: {
+                color: "#222",
+                backgroundColor: "#ccc",
+            },
+            select: {
+                "&:focus": {
+                    color: "#222",
+                    backgroundColor: "#ccc"
+                },
+            }
+        },
+        MuiInputLabel: {
+            filled: {
+                color: "#222"
+            }
+        },
+        MuiChip: {
+            outlined: {
+                backgroundColor: "#ccc"
+            }
         }
     },
 });
