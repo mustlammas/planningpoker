@@ -19,7 +19,7 @@ export const WelcomeScreen = ({roomId, client}) => {
 
     return submitted ? null :
         <div>
-            <TextField onKeyDown={onEnter} autoFocus label="Name" variant="standard" type="text" value={user} onChange={(e) => setUser(e.target.value)}/>
+            <TextField onKeyDown={onEnter} autoFocus label="Your name" type="text" value={user} onChange={(e) => setUser(e.target.value)}/>
             <Box ml={1} display="inline">
                 <Button color="primary" variant="contained" size="large" onClick={() => {
                     sendJoinMessage();

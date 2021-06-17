@@ -2,17 +2,14 @@ import {useRecoilState, useRecoilValue} from "recoil";
 import React from "react";
 import {everyoneHasVoted} from "./common";
 import {configState, votesState} from "./state";
+import {Typography} from "@material-ui/core";
 
-export const Result = () => {
-    const [votes] = useRecoilState(votesState);
-    const config = useRecoilValue(configState);
-    const options = config.template && config.template.options || [];
-
+const calculateResult = (votes, options) => {
     if (everyoneHasVoted(votes)) {
         const participantVotes = votes.filter(v => !v.observer);
 
         if (participantVotes.length === 0) {
-            return <h1>?</h1>;
+            return "?";
         }
 
         const conflictingVotes = participantVotes.filter(v => {
@@ -41,11 +38,21 @@ export const Result = () => {
         const largestVote = votesWithIndexes.pop();
 
         if (conflictingVotes.length > 0) {
-            return <h2>Conflicting votes!</h2>;
+            return "Conflicting votes!";
         } else {
-            return <h2>{largestConflictingVote ? largestConflictingVote.vote : largestVote.vote}</h2>;
+            return largestConflictingVote ? largestConflictingVote.vote : largestVote.vote;
         }
     } else {
-        return <h2>Waiting for votes...</h2>;
+        return "Waiting for votes...";
     }
+};
+
+export const Result = () => {
+    const [votes] = useRecoilState(votesState);
+    const config = useRecoilValue(configState);
+    const options = config.template && config.template.options || [];
+
+    return <Typography variant="h5" gutterBottom>
+        {calculateResult(votes, options)}
+    </Typography>;
 };

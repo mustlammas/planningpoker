@@ -184,6 +184,7 @@ const ConfigModal = ({client}) => {
                         <TableCell style={{width: "1rem"}}></TableCell>
                         <TableCell>Label</TableCell>
                         <TableCell>Conflicting options</TableCell>
+                        <TableCell></TableCell>
                     </TableRow>
                 </TableHead>
                 <DragDropContext onDragEnd={onDragEnd}>
