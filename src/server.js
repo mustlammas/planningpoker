@@ -93,8 +93,6 @@ const ensuringUniqueUsername = (room, username, socket, onSuccess) => {
 };
 
 io.on('connect', (socket) => {
-  console.log('Client ' + socket.id + ' connected');
-
   socket.on(msg.JOIN, message => {
     let m = JSON.parse(message);
     let username = m.username;
@@ -103,6 +101,7 @@ io.on('connect', (socket) => {
     if (existingRoom) {
       ensuringUniqueUsername(room, username, socket, () => {
         socket.join(room);
+        socket.pokerRoom = room;
         console.log(`User ${username} joined room ${room}`);
         socket.username = username;
         sendMessage(socket, msg.USERNAME_OK, {
@@ -110,6 +109,7 @@ io.on('connect', (socket) => {
         });
         sendUserList(room);
         sendConfig(room);
+        sendInfoMessage(room, `${username} joined`);
         touch(room);
       });
     } else {
@@ -127,6 +127,7 @@ io.on('connect', (socket) => {
     const m = JSON.parse(message);
     const room = [...socket.rooms][1];
     resetVotes(room);
+    sendInfoMessage(socket.pokerRoom, `${socket.username} reset votes`);
     touch(room);
   });
   socket.on(msg.BECOME_OBSERVER, message => {
@@ -159,15 +160,13 @@ io.on('connect', (socket) => {
     rooms[room].template = template;
     sendConfig(room);
     resetVotes(room);
+    sendInfoMessage(room, `Configuration changed`);
     touch(room);
   });
-  socket.on('disconnect', () => {
-    console.log('Client ' + socket.id + ' disconnected');
-    if ([...socket.rooms].length < 2) {
-      return;
-    }
-    const room = [...socket.rooms][1];
-    sendUserList(socket, room);
+  socket.on("disconnect", (reason) => {
+    console.log(`${socket.username} disconnected from room ${socket.pokerRoom}. Reason: ${reason}`);
+    sendUserList(socket.pokerRoom, socket.username);
+    sendInfoMessage(socket.pokerRoom, `${socket.username} disconnected`);
   });
 });
 
@@ -190,17 +189,17 @@ const revealVotes = (room) => {
   });
 };
 
-const sendUserList = (room) => {
-  io.of("/").in(room).fetchSockets().then(sockets => {
-    const votes = sockets.map(s => {
-      return {
-        username: s.username,
-        vote: s.vote,
-        observer: s.observer
-      };
-    });
-    io.in(room).emit(msg.UPDATE_USERS, JSON.stringify(votes));
+const sendUserList = async (room, username = "") => {
+  const sockets =  await io.of("/").in(room).fetchSockets();
+  const filteredSockets = sockets.filter(s => s.username !== username);
+  const votes = filteredSockets.map(s => {
+    return {
+      username: s.username,
+      vote: s.vote,
+      observer: s.observer
+    };
   });
+  io.in(room).emit(msg.UPDATE_USERS, JSON.stringify(votes));
 };
 
 const resetVotes = (room) => {
@@ -214,8 +213,13 @@ const resetVotes = (room) => {
 };
 
 const sendConfig = (room) => {
-  console.log("Sending config: ", rooms[room]);
   io.in(room).emit(msg.CONFIG, JSON.stringify(rooms[room]));
+};
+
+const sendInfoMessage = (room, message) => {
+  io.in(room).emit(msg.INFO_MESSAGE, JSON.stringify({
+    message: message
+  }));
 };
 
 server.listen(port, () => {

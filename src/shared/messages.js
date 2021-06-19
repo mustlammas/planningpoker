@@ -10,3 +10,4 @@ exports.CONFIG = "CONFIG";
 exports.UPDATE_CONFIG = "UPDATE_CONFIG";
 exports.ERROR = "ERROR";
 exports.ROOM_REMOVED = "ROOM_REMOVED";
+exports.INFO_MESSAGE = "INFO_MESSAGE";

@@ -17,7 +17,7 @@ import {configState, selectedPointsState, userSubmittedState, votesState} from "
 import {Result} from "./result";
 import {WelcomeScreen} from "./welcome";
 import {Poker} from "./poker";
-import {showError} from "./common";
+import {showError, showMessage} from "./common";
 
 export const PokerClient = ({roomId}) => {
   const setVotes = useSetRecoilState(votesState);
@@ -56,6 +56,10 @@ export const PokerClient = ({roomId}) => {
       console.log(Msg.ROOM_REMOVED);
       socket.disconnect();
       history.push('/');
+    });
+    socket.on(Msg.INFO_MESSAGE, (msg) => {
+      const message = JSON.parse(msg).message;
+      showMessage(message);
     });
 
     setClient(socket);

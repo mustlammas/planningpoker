@@ -1,6 +1,7 @@
 import { toast } from 'material-react-toastify';
 
 export const showError = (msg) => toast.error(msg);
+export const showMessage = (msg) => toast.info(msg);
 
 export const sendMessage = (client, type, message) => {
     if (client) {

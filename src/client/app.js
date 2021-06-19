@@ -45,7 +45,7 @@ const useStyles = makeStyles((theme) => ({
 
 const App = () => {
   const classes = useStyles();
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
 
   const toggleUIMode = () => {
     setDarkMode(!darkMode);
@@ -61,7 +61,7 @@ const App = () => {
             </Typography>
             <Button color="default" size="small" variant="contained" className={classes.themeToggle}
                     onClick={toggleUIMode}>
-              {darkMode ? "Default mode" : "Dark mode"}
+              {darkMode ? "Default UI" : "Dark UI"}
             </Button>
             <Button href="https://github.com/mustlammas/planningpoker" target="_blank" color="inherit" size="small">
               <Typography variant="button" className={classes.source}> v{process.env.VERSION}</Typography><GitHubIcon/>
