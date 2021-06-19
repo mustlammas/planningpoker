@@ -1,5 +1,10 @@
 import {atom} from "recoil";
 
+export const uiModeState = atom({
+    key: 'darkMode',
+    default: false
+});
+
 export const votesState = atom({
     key: 'votesState',
     default: []
