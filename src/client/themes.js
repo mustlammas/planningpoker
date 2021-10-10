@@ -4,12 +4,7 @@ export const defaultTheme =  createMuiTheme({
     palette:  {
         alternative: {
             main: '#fff'
-        },
-        secondary: {
-            light: '#999',
-            main: '#3f51b5',
-            contrastText: '#ccc',
-        },
+        }
     }
 });
 
